@@ -1,0 +1,734 @@
+<page-board-view>
+  <div class="d-flex flex-column flex-1">
+    <a href="#!" class="d-block alert alert-info mb-3" if={ !props.page.get('data.model.id') } onclick={ (e) => props.onConfig(e) }>
+      <i class="fa fa-exclamation-triangle mr-2" />
+      Please select a <b>model</b> for the board.
+    </a>
+    <a href="#!" class="d-block alert alert-info mb-3" if={ !props.page.get('data.forms.0.id') } onclick={ (e) => props.onConfig(e) }>
+      <i class="fa fa-exclamation-triangle mr-2" />
+      Please select a <b>form</b> for the board.
+    </a>
+    <a href="#!" class="d-block alert alert-info mb-3" if={ !props.page.get('data.group.uuid') } onclick={ (e) => props.onConfig(e) }>
+      <i class="fa fa-exclamation-triangle mr-2" />
+      Please select a <b>grouping field</b> for the board.
+    </a>
+
+    <div class="view-columns flex-1" if={ state.board && props.page.get('data.group.uuid') }>
+      <div each={ (column, i) in state.board } data-column={ column.id } class={ `${column.id === 'backlog' && props.page.get('data.backlog.disabled') ? 'd-none' : ''}` }>
+        <div class="column-header">
+          <i if={ !column.name }>N/A</i>
+          { column.id === 'backlog' ? (props.page.get('data.backlog.name') || 'Backlog') : column.name }
+
+          <div class="column-header-action ml-auto" if={ column.id !== 'backlog' && props.dashup.can(props.page, 'manage') }>
+            <div class="d-flex">
+              <button class="btn btn-link" onclick={ (e) => onColumnModal(e, column) }>
+                <i class="fa fa-ellipsis-h" />
+              </button>
+            </div>
+          </div>
+          <div class="column-header-action ml-auto" if={ column.id === 'backlog' || !props.dashup.can(props.page, 'manage') }>
+            <div class="d-flex">
+              <button class="btn btn-link">
+                <i class="fa fa-ellipsis-h" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="column-body">
+          <div class="column-body-inner">
+            <div class="card">
+              <div class="card-body task-container" data-id={ column.id } if={ !loading(column.id) }>
+                <board-task each={ (item, i) in getItems(column) } if={ (column.id === 'backlog' && !item.get(`${column.key}.0`)) || item.get(`${column.key}.0`) === column.id } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...props } />
+              </div>
+              <div class="card-body task-container text-center" data-id={ column.id } if={ loading(column.id) }>
+                <i class="fa fa-spinner fa-spin" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div if={ !state.board } class="text-center my-5 py-5">
+      <i class="fa fa-spin fa-spinner h1" />
+    </div>
+
+    <board-modal if={ column } ref={ ref('column') } column={ column } page={ props.page } set={ onColumnSet } />
+
+    <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'tag' } aria-labelledby={ `tag-${state.model.get('_id')}` } id={ `tag-dd-${state.model.get('_id')}` }>
+      <dashup-tag ref={ ref('model') } { ...props } />
+    </div>
+    <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'user' } aria-labelledby={ `user-${state.model.get('_id')}` } id={ `user-dd-${state.model.get('_id')}` }>
+      <dashup-user ref={ ref('model') } { ...props } />
+    </div>
+  </div>
+
+  <script>
+    // require base class
+    import uuid from 'uuid';
+    import dotProp from 'dot-prop';
+    import PerfectScrollbar from 'perfect-scrollbar';
+
+    // export default
+    export default class DashupPageBoard {
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // RIOT METHODS
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * on before mount
+       */
+      onBeforeMount(...args) {
+        // bind
+        this.onAddTag      = this.onAddTag.bind(this);
+        this.onAddUser     = this.onAddUser.bind(this);
+        this.onColumnSet   = this.onColumnSet.bind(this);
+        this.onColumnModal = this.onColumnModal.bind(this);
+
+        // bind
+        this.init     = this.init.bind(this);
+        this.initSort = this.initSort.bind(this);
+
+        // module
+        this.scrolls = new Map();
+
+        // set force update
+        this.scheduleUpdate = () => {
+          // update
+          this.update();
+        };
+      }
+
+      /**
+       * on mounted
+       *
+       * @param {Array} args
+       */
+      onMounted(...args) {
+        // check frontend
+        if (typeof window === 'undefined') return;
+
+        // init
+        this.init();
+
+        // where
+        this.props.page.on('data.model', this.init);
+        this.props.page.on('data.field', this.init);
+        this.props.page.on('data.backlog', this.scheduleUpdate);
+        this.props.page.on('do.user.where', this.init);
+        this.props.page.on('do.data.filter', this.init);
+      }
+
+      /**
+       * on mounted
+       *
+       * @param {Array} args
+       */
+      onBeforeUnmount(...args) {
+        // check frontend
+        if (typeof window === 'undefined') return;
+
+        // sortables
+        if (this.sortables) {
+          try {
+            // destroy
+            this.sortables.forEach((sortable) => sortable.destroy());
+          } catch (e) {}
+
+          // reset
+          this.sortables = [];
+        }
+
+        // items
+        if (this.state.items && this.state.items.removeListener) {
+          // safe update
+          this.state.items.removeListener('update', this.scheduleUpdate);
+        }
+
+        // where
+        this.props.page.removeListener('data.model', this.init);
+        this.props.page.removeListener('data.field', this.init);
+        this.props.page.removeListener('data.backlog', this.scheduleUpdate);
+        this.props.page.removeListener('do.user.where', this.init);
+        this.props.page.removeListener('do.data.filter', this.init);
+      }
+
+      /**
+       * on updated
+       */
+      onUpdated(...args) {
+        // check frontend
+        if (typeof window === 'undefined') return;
+
+        // set ps
+        if (!this.$('.ps') && this.$('.view-columns')) {
+          // perfect scrollbar
+          this.ps = new PerfectScrollbar(this.$('.view-columns'));
+        }
+
+        // add perfect scrollbar
+        Array.from(this.$$('.task-container')).forEach((item) => {
+          // check item
+          if ($('.ps__rail-y', item).length || $(item).hasClass('ps')) return;
+
+          // set item
+          if (this.scrolls.get(item.getAttribute('data-id'))) {
+            // set scroll
+            item.scrollTop = this.scrolls.get(item.getAttribute('data-id'));
+          }
+
+          // perfect scrollbar
+          new PerfectScrollbar(item);
+
+          // log
+          item.addEventListener('ps-scroll-y', (e) => {
+            // set item
+            this.scrolls.set(item.getAttribute('data-id'), e.target.scrollTop);
+          });
+        });
+
+        // view columns
+        if (this.$('.view-columns')) {
+          // init sort
+          this.initSort();
+        }
+      }
+
+      /**
+       * should update
+       */
+      shouldUpdate() {
+        // check updating
+        return !this.__canUpdate;
+      }
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // EVENT METHODS
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * on column settings
+       *
+       * @param {Event} e
+       * @param {Object} column
+       */
+      onColumnModal(e, column) {
+        // set column
+        this.column = column;
+        this.update();
+
+        // show columns
+        this.refs.column.show();
+      }
+
+      /**
+       * on set color
+       *
+       * @param {Event}  e
+       * @param {String} color
+       */
+      onColumnSet(key, value) {
+        // alters
+        const alters = this.props.page.get('data.alters') || [];
+
+        // found
+        let found = alters.find(c => c.id === this.column.id);
+
+        // found
+        if (!found) {
+          // create new found
+          found = { id : this.column.id };
+
+          // push
+          alters.push(found);
+        }
+
+        // set values
+        found[key] = value;
+        this.column[key] = value;
+        
+        // onset
+        this.props.data('alters', alters);
+      }
+
+      /**
+       * on submit
+       *
+       * @param {Event} e
+       */
+      onAddTag(e, model) {
+        // close popped
+        if (this.closePopped) this.closePopped();
+
+        // submit form
+        this.update({
+          menu : 'tag',
+          model,
+        });
+
+        // create popped
+        this.popped = new Popper(this.$(`#tag-${model.get('_id')}`), this.$(`#tag-dd-${model.get('_id')}`), {
+          placement : 'left-start'
+        });
+
+        // container
+        const container = jQuery(this.$(`#tag-dd-${model.get('_id')}`));
+
+        // create close popped
+        const closePopped = (e) => {
+          // reset
+          this.closePopped = null;
+
+          // check
+          if (!container.is(e.target) && container.has(e.target).length === 0) {
+            // close
+            this.popped = null;
+            this.update({
+              menu  : null,
+              model : null,
+            });
+
+            // remove listener
+            jQuery(document).off('mouseup', closePopped);
+          }
+        };
+        this.closePopped = closePopped;
+
+        // add listener
+        jQuery(document).on('mouseup', closePopped);
+      }
+
+      /**
+       * on submit
+       *
+       * @param {Event} e
+       */
+      onAddUser(e, model) {
+        // close popped
+        if (this.closePopped) this.closePopped();
+
+        // submit form
+        this.update({
+          menu : 'user',
+          model,
+        });
+
+        // create popped
+        this.popped = new Popper(this.$(`#user-${model.get('_id')}`), this.$(`#user-dd-${model.get('_id')}`), {
+          placement : 'left-start'
+        });
+
+        // container
+        const container = jQuery(this.$(`#user-dd-${model.get('_id')}`));
+
+        // create close popped
+        const closePopped = (e) => {
+          // reset
+          this.closePopped = null;
+
+          // check
+          if (!container.is(e.target) && container.has(e.target).length === 0) {
+            // close
+            this.popped = null;
+            this.update({
+              menu  : null,
+              model : null,
+            });
+
+            // remove listener
+            jQuery(document).off('mouseup', closePopped);
+          }
+        };
+        this.closePopped = closePopped;
+
+        // add listener
+        jQuery(document).on('mouseup', closePopped);
+      }
+
+      /**
+       * get items
+       *
+       * @param {String} col
+       */
+      getItems(col) {
+        // check frontend
+        if (typeof window === 'undefined') return [];
+
+        // return queries
+        return (this.state.items || []).filter((row) => {
+          // value
+          const value = row.get(`${col.key}.0`);
+
+          // check col
+          if (value === (typeof col.value !== 'undefined' ? col.value : col.id)) return true;
+          if ((!value || value === 'backlog') && col.id === 'backlog') return true;
+        }).sort((a, b) => {
+          // sort order
+          const aC = a.get(`_meta.${this.props.page.get('_id')}.order`) || 0;
+          const bC = b.get(`_meta.${this.props.page.get('_id')}.order`) || 0;
+
+          // check order
+          if (bC > aC) return -1;
+          if (bC < aC) return 1;
+          return 0;
+        });
+      }
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // Init Methods
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * init
+       */
+      async init() {
+        // sortables
+        if (this.sortables) {
+          try {
+            // destroy
+            this.sortables.forEach((sortable) => sortable.destroy());
+          } catch (e) {}
+
+          // reset
+          this.sortables = [];
+        }
+
+        // items
+        if (this.state.items && this.state.items.removeListener) {
+          // safe update
+          this.state.items.removeListener('update', this.scheduleUpdate);
+        }
+
+        // get board
+        const res = await fetch(`/app/board/${this.props.page.get('_id')}/board`, {
+          method : 'POST',
+        });
+
+        // get model
+        let items = [];
+        const model = this.props.page.get('data.model.id');
+
+        // query by
+        if (model) {
+          // set query
+          let query = this.props.dashup.page(model);
+
+          // check items
+          if ((this.props.page.get('data.forms') || []).length) {
+            // loop forms
+            query = query.in('_meta.form', this.props.page.get('data.forms').map((f) => f.id));
+          }
+
+          // load filter
+          let filter = null;
+
+          // try/catch
+          try {
+            filter = JSON.parse(this.props.page.get('data.filter'));
+          } catch (e) {}
+
+          // add initial where
+          if (filter) {
+            // add wheres
+            filter.forEach((where) => {
+              // where
+              query = query.where(where);
+            });
+          }
+
+          // check where
+          (this.props.page.get('user.where') || []).forEach((where) => {
+            // add query
+            query = query[where[0]](where[1], where[2]);
+          });
+
+          // listen
+          items = await query.listen();
+        }
+
+        // update
+        this.update({
+          items,
+          board : (await res.json()).data
+        });
+
+        // safe update
+        if (items && items.on) items.on('update', this.scheduleUpdate);
+
+        // set values
+        if (this.$('.view-columns')) this.ps = this.ps || new PerfectScrollbar(this.$('.view-columns'));
+
+        // init sort
+        this.initSort();
+
+        // add perfect scrollbar
+        Array.from(this.$$('.task-container')).forEach((item) => {
+          // perfect scrollbar
+          const ps = new PerfectScrollbar(item);
+
+          // log
+          item.addEventListener('ps-scroll-y', (e) => {
+            // set item
+            this.scrolls.set(item.getAttribute('data-id'), e.target.scrollTop);
+          });
+        });
+      }
+
+      /**
+       * init sort
+       */
+      initSort () {
+        // require sort
+        const Sortable = require('sortablejs');
+
+        // sortables
+        if (this.sortables) {
+          try {
+            // destroy
+            this.sortables.forEach((sortable) => sortable.destroy());
+          } catch (e) {}
+        }
+
+        // sortables
+        this.sortables = [];
+
+        // check can
+        if (!this.props.dashup.can(this.props.page, 'submit')) return;
+
+        // check init
+        if (!this.$$('.task-container').length) return;
+
+        // create sortables
+        this.$$('.task-container').forEach((item) => {
+          // push
+          this.sortables.push(new Sortable(item, {
+            group          : 'task-container',
+            draggable      : '[is="board-task"]',
+            animation      : 200,
+            fallbackOnBody : true,
+
+            onEnd : async (e) => {
+              // set item
+              const el     = e.item;
+              const target = e.to;
+              const source = e.from;
+
+              // set column
+              const col    = jQuery(target).attr('data-id') || null;
+              const column = this.state.board.find(c => c.id === col);
+              
+              // updates
+              const updates = [];
+
+              // set updating
+              this.__canUpdate = true;
+
+              // list all in target
+              jQuery('.card-task', target).each((i, item) => {
+                // make sure not 0
+                i = i + 1;
+
+                // get item
+                const task = (this.state.items || []).find((t) => {
+                  // return accumulator
+                  return t.get('_id') === jQuery(item).attr('data-id');
+                });
+
+                // check column fields
+                if ((task.get(`${column.key}.0`) || 'backlog') !== (col || 'backlog')) {
+                  // push update
+                  updates.push([task.get('_id'), column.key, [(col || 'backlog')]]);
+                  task.set(column.key, [(col || 'backlog')]);
+                }
+                if (task.get(`${this.props.page.get('_id')}.order`) !== i) {
+                  // push update
+                  updates.push([task.get('_id'), `_meta.${this.props.page.get('_id')}.order`, i]);
+                  task.set(`_meta.${this.props.page.get('_id')}.order`, i);
+                }
+              });
+
+              // check updates
+              if (updates.length) {
+                // post updates
+                await eden.router.post(`/app/board/${this.props.page.get('_id')}/update`, {
+                  updates,
+                });
+              }
+
+              // set updating
+              this.__canUpdate = false;
+
+              // load columns
+              [col, jQuery(source).attr('data-id')].forEach((col) => {
+                this.loading(col || 'backlog', true);
+                this.loading(col || 'backlog', false);
+              });
+            }
+          }));
+        });
+
+        // create sortables
+        this.$$('.view-columns').forEach((item) => {
+          // push
+          this.sortables.push(new Sortable(item, {
+            group            : 'view-columns',
+            delay            : 2 * 1000,
+            handle           : '.btn-moves',
+            animation        : 200,
+            fallbackOnBody   : true,
+            delayOnTouchOnly : true,
+
+            onEnd : async (e) => {
+              // set item
+              const el     = e.item;
+              const target = e.to;
+              const source = e.from;
+
+              // reorder columns
+              const alters = this.props.page.get('data.alters') || [];
+
+              // check columns
+              jQuery('.card', target).each((i, item) => {
+                // get found
+                let found = alters.find((col) => col.id === jQuery(item).attr('data-column'));
+                const column = this.state.find((col) => col.id === jQuery(item).attr('data-column'));
+
+                // check found
+                if (!found) {
+                  // set found
+                  found = {
+                    id    : jQuery(item).attr('data-column'),
+                    order : i,
+                  };
+
+                  // push alters
+                  alters.push(found);
+                } else {
+                  // set found
+                  found.order = i;
+                }
+
+                // set in column
+                column.set('order', i);
+              });
+
+              // set
+              this.update({
+                board : this.state.board,
+              });
+
+              // update
+              this.loading('columns', true);
+
+              // onset
+              this.props.data('alters', alters);
+
+              // update
+              this.loading('columns', false);
+            }
+          }));
+        });
+      }
+
+      /**
+       * is filter me
+       */
+      isFilter(type, val) {
+        // check me
+        return ((this.props.page.get('user.filter') || {})[type] || false) === val;
+      }
+
+      /**
+       * check visible
+       */
+      isVisible(task) {
+        // tags
+        const tags = this.props.search && this.props.search.length ? this.props.search.toLowerCase().split(' ') : [];
+
+        // check filter
+        if (this.isFilter('me', true)) {
+          // check vals
+          let vals = (task.get(this.props.page.get('data.user.name') || this.props.page.get('data.user.uuid')) || []);
+
+          // vals
+          if (vals && !Array.isArray(vals)) vals = [vals];
+
+          // only me
+          if (!vals.find((val) => {
+            // user
+            return val.user === eden.user.get('id');
+          })) return false;
+        }
+
+        // check tags
+        if ((this.props.page.get('user.filter.tags') || []).length) {
+          // check filter
+          if (this.props.page.get('user.filter.tags').find((tag) => {
+            // check tag exists on task
+            let val = task.get(this.props.page.get('data.tag.name') || this.props.page.get('data.tag.uuid')) || [];
+
+            // set value
+            if (typeof val === 'string') val = [val];
+
+            // check tag
+            return !val.includes(tag);
+          })) return false;
+        }
+
+        // filter
+        if (tags.length) {
+          // search item
+          const searchable = JSON.stringify(task.get()).toLowerCase();
+
+          // search JSON
+          if (tags.find((tag) => {
+            // check
+            return !searchable.includes(tag);
+          })) return false;
+        }
+
+        // return true
+        return true;
+      }
+
+      /**
+       * ref
+       */
+      ref(name) {
+        // set refs
+        if (!this.refs) this.refs = {};
+
+        // return ref function
+        return (that) => {
+          // set ref
+          this.refs[name] = that;
+        };
+      }
+
+      /**
+       * set loading
+       */
+      loading(type, way) {
+        // set loading
+        if (!this.__loading) this.__loading = new Map();
+
+        // check loading
+        if (!type) return !!Array.from(this.__loading.values()).find((v) => v);
+        if (typeof way === 'undefined') return !!this.__loading.get(type);
+
+        // set loading
+        this.__loading.set(type, way);
+        this.update();
+      }
+    }
+  </script>
+</page-board-view>
