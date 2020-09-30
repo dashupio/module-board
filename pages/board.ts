@@ -46,8 +46,8 @@ export default class BoardPage extends Page {
     // return object of views
     return {
       view   : 'page/board/view',
-      // menu   : 'page/board/menu',
-      // config : 'page/board/config',
+      menu   : 'page/board/menu',
+      config : 'page/board/config',
     };
   }
 

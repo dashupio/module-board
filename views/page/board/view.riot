@@ -18,27 +18,12 @@
         <div class="column-header">
           <i if={ !column.name }>N/A</i>
           { column.id === 'backlog' ? (props.page.get('data.backlog.name') || 'Backlog') : column.name }
-
-          <div class="column-header-action ml-auto" if={ column.id !== 'backlog' && props.dashup.can(props.page, 'manage') }>
-            <div class="d-flex">
-              <button class="btn btn-link" onclick={ (e) => onColumnModal(e, column) }>
-                <i class="fa fa-ellipsis-h" />
-              </button>
-            </div>
-          </div>
-          <div class="column-header-action ml-auto" if={ column.id === 'backlog' || !props.dashup.can(props.page, 'manage') }>
-            <div class="d-flex">
-              <button class="btn btn-link">
-                <i class="fa fa-ellipsis-h" />
-              </button>
-            </div>
-          </div>
         </div>
         <div class="column-body">
           <div class="column-body-inner">
             <div class="card">
               <div class="card-body task-container" data-id={ column.id } if={ !loading(column.id) }>
-                <board-task each={ (item, i) in getItems(column) } if={ (column.id === 'backlog' && !item.get(`${column.key}.0`)) || item.get(`${column.key}.0`) === column.id } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...props } />
+                <page-board-task each={ (item, i) in getItems(column) } if={ (column.id === 'backlog' && !item.get(`${column.key}.0`)) || item.get(`${column.key}.0`) === column.id } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...props } />
               </div>
               <div class="card-body task-container text-center" data-id={ column.id } if={ loading(column.id) }>
                 <i class="fa fa-spinner fa-spin" />
@@ -51,8 +36,6 @@
     <div if={ !state.board } class="text-center my-5 py-5">
       <i class="fa fa-spin fa-spinner h1" />
     </div>
-
-    <board-modal if={ column } ref={ ref('column') } column={ column } page={ props.page } set={ onColumnSet } />
 
     <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'tag' } aria-labelledby={ `tag-${state.model.get('_id')}` } id={ `tag-dd-${state.model.get('_id')}` }>
       <dashup-tag ref={ ref('model') } { ...props } />
@@ -68,6 +51,9 @@
     import dotProp from 'dot-prop';
     import PerfectScrollbar from 'perfect-scrollbar';
 
+    // import modules
+    import pageBoardTask from './task';
+
     // export default
     export default class DashupPageBoard {
 
@@ -79,14 +65,22 @@
       // ////////////////////////////////////////////////////////////////////////////
 
       /**
+       * local components
+       */
+      static get components() {
+        // return components
+        return {
+          pageBoardTask,
+        };
+      }
+
+      /**
        * on before mount
        */
       onBeforeMount(...args) {
         // bind
-        this.onAddTag      = this.onAddTag.bind(this);
-        this.onAddUser     = this.onAddUser.bind(this);
-        this.onColumnSet   = this.onColumnSet.bind(this);
-        this.onColumnModal = this.onColumnModal.bind(this);
+        this.onAddTag  = this.onAddTag.bind(this);
+        this.onAddUser = this.onAddUser.bind(this);
 
         // bind
         this.init     = this.init.bind(this);
@@ -211,51 +205,6 @@
       // EVENT METHODS
       //
       // ////////////////////////////////////////////////////////////////////////////
-
-      /**
-       * on column settings
-       *
-       * @param {Event} e
-       * @param {Object} column
-       */
-      onColumnModal(e, column) {
-        // set column
-        this.column = column;
-        this.update();
-
-        // show columns
-        this.refs.column.show();
-      }
-
-      /**
-       * on set color
-       *
-       * @param {Event}  e
-       * @param {String} color
-       */
-      onColumnSet(key, value) {
-        // alters
-        const alters = this.props.page.get('data.alters') || [];
-
-        // found
-        let found = alters.find(c => c.id === this.column.id);
-
-        // found
-        if (!found) {
-          // create new found
-          found = { id : this.column.id };
-
-          // push
-          alters.push(found);
-        }
-
-        // set values
-        found[key] = value;
-        this.column[key] = value;
-        
-        // onset
-        this.props.data('alters', alters);
-      }
 
       /**
        * on submit

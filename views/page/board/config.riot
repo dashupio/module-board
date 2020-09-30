@@ -1,0 +1,442 @@
+<page-board-config>
+  <div class="mb-3">
+    <label class="form-label">
+      Board Model
+    </label>
+    <eden-select on-change={ () => onModel() } ref={ ref('model') } url={ `/app/${eden.get('dashup').get('_id')}/model/list` } placeholder="Select Model" data={ getModel() } />
+    <small>
+      The model this page should display.
+    </small>
+  </div>
+  
+  <div if={ !loading('model') && props.page.get('data.model.id') } class="mb-3">
+    <label class="form-label">
+      Board Forms
+    </label>
+    <eden-select onchange={ (e) => onForms(e) } ref={ ref('forms') } url={ `/app/${eden.get('dashup').get('_id')}/form/${props.page.get('data.model.id')}/list` } placeholder="Select Forms" data={ getForms() } multiple={ true } />
+    <small>
+      The forms to filter by for data.
+    </small>
+  </div>
+  
+  <div if={ !loading('model') && props.page.get('data.model.id') } class="mb-3">
+    <label class="form-label">
+      Modal Form
+    </label>
+    <eden-select onchange={ (e) => onForm(e) } ref={ ref('form') } url={ `/app/${eden.get('dashup').get('_id')}/form/${props.page.get('data.model.id')}/list` } placeholder="Select Form" data={ getForm() } />
+    <small>
+      The form that will show in the modal when viewing a task.
+    </small>
+  </div>
+
+  <div if={ props.page.get('data.forms.0.id') }>
+    <hr />
+      
+    <div class="mb-3">
+      <label class="form-label">
+        Backlog Enabled
+      </label>
+      <eden-select on-change={ (e, val) => onBacklogEnabled(val) } ref={ ref('backlog') } placeholder="Select Backlog Enabled" data={ getBacklog() } />
+      <small>
+        Toggles the backlog column.
+      </small>
+    </div>
+
+    <div class="mb-3" if={ !props.page.get('data.backlog.disabled') }>
+      <label class="form-label">
+        Backlog Name
+      </label>
+      <input type="text" class="form-control" onchange={ (e) => onBacklogName(e) } placeholder="Set Backlog Name" data={ props.page.get('data.backlog.name') || 'Backlog' } />
+      <small>
+        The name of the backlog column.
+      </small>
+    </div>
+      
+    <div class="mb-3">
+      <label class="form-label">
+        Group By
+      </label>
+      <eden-select on-change={ (e, val) => onGroup(val) } ref={ ref('group') } url={ `/app/${eden.get('dashup').get('_id')}/form/${getGroupUrl()}/order-select-radio/fields` } placeholder="Select Field" data={ getGroup() } />
+      <small>
+        The columns that will show on this page.
+      </small>
+    </div>
+      
+    <div class="mb-3">
+      <label class="form-label">
+        Tag Field
+      </label>
+      <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } url={ `/app/${eden.get('dashup').get('_id')}/form/${getGroupUrl()}/tag-select/fields` } placeholder="Select Tag Field" data={ getTag() } />
+      <small>
+        Selecting a tag field will allow you to tag tasks.
+      </small>
+    </div>
+      
+    <div class="mb-3">
+      <label class="form-label">
+        User Field
+      </label>
+      <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } url={ `/app/${eden.get('dashup').get('_id')}/form/${getGroupUrl()}/user/fields` } placeholder="Select User Field" data={ getUser() } />
+      <small>
+        Selecting a user field will allow you to assign tasks to that user.
+      </small>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">
+        Item Display
+      </label>
+      <code-block ref={ ref('display') } mode="handlebars" content={ props.page.get('data.display') || '' } prevent-update={ true } on-change={ (e) => onDisplay(e) } />
+      <div class="alert alert-primary mt-2">
+        <hbs template={ props.page.get('data.display') || '' } data={ state.test ? state.test.get() : {} } />
+      </div>
+    </div>
+  </div>
+
+  <div if={ props.page.get('data.forms.0.id') }>
+    <hr />
+      
+    <div class="mb-3">
+      <label class="form-label">
+        Filter By
+      </label>
+
+      <dashup-query fields={ state.fields } on-change={ (val) => onFilter(val) } value={ props.page.get('data.filter') ? JSON.parse(props.page.get('data.filter')) : [] } />
+    </div>
+  </div>
+
+  <script>
+    // export default
+    export default class DashupConfigGrid {
+
+      /**
+       * on before mount
+       */
+      onBeforeMount(...args) {
+        // on before mount
+        super.onBeforeMount(...args);
+      }
+
+      /**
+       * on before mount
+       */
+      onMounted(...args) {
+        // on before mount
+        super.onMounted(...args);
+
+        // init
+        this.init();
+      }
+
+      /**
+       * on model
+       */
+      async onModel() {
+        // get value
+        const model = this.refs.model.val();
+
+        // model
+        if (!model || !model.length) return;
+
+        // get module
+        const mod = this.eden.get('dashup').page(model);
+
+        // loading model
+        this.loading('model', true);
+
+        // set again
+        if (mod.get('_id') !== this.props.page.get('data.model.id')) {
+          // set form again
+          await this.props.onData('form', null);
+        }
+        
+        // set model
+        await this.props.onData('model', {
+          id   : mod.get('_id'),
+          name : mod.get('name'),
+        });
+
+        // loading model
+        this.loading('model', false);
+        this.init();
+      }
+
+      /**
+       * on model
+       */
+      onFilter(val) {
+        // set model
+        this.props.onData('filter', JSON.stringify(val));
+      }
+
+      /**
+       * on model
+       */
+      onForm(e) {
+        // forms
+        let form = this.refs.form.val();
+
+        // model
+        if (!form) return;
+
+        // set module
+        const mod = this.eden.get('dashup').page(form);
+        
+        // set model
+        this.props.onData('form', {
+          id   : mod.get('_id'),
+          name : mod.get('name'),
+        });
+      }
+
+      /**
+       * on model
+       */
+      onForms(e) {
+        // forms
+        let forms = this.refs.forms.val();
+
+        // model
+        if (!forms || !forms.length) forms = [];
+
+        // set module
+        const mods = forms.map((form) => {
+          // return form
+          return this.eden.get('dashup').page(form);
+        });
+        
+        // set model
+        this.props.onData('forms', mods.map((mod) => {
+          // return forms
+          return {
+            id   : mod.get('_id'),
+            name : mod.get('name'),
+          };
+        }));
+      }
+
+      /**
+       * on model
+       */
+      async onBacklogName(e) {
+        // get value
+        const val = e.target.value;
+
+        // model
+        if (!val || !val.length) val = 'Backlog';
+
+        // get backlog
+        const backlog = this.props.page.get('data.backlog') || {};
+
+        // set value
+        backlog.name = val;
+        
+        // set model
+        this.props.onData('backlog', backlog);
+      }
+
+      /**
+       * on model
+       */
+      async onBacklogEnabled(val) {
+        // get value
+        val = val === 'true';
+
+        // get backlog
+        const backlog = this.props.page.get('data.backlog') || {};
+
+        // set value
+        backlog.disabled = !val;
+        
+        // set model
+        this.props.onData('backlog', backlog);
+      }
+
+      /**
+       * on model
+       */
+      async onGroup(field) {
+        // get value
+        if (!field) field = this.refs.group.val();
+
+        // model
+        if (!field || !field.length) return;
+
+        // get field
+        const result = await (await fetch(`/app/${eden.get('dashup').get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
+        
+        // set model
+        this.props.onData('group', result.data);
+      }
+
+      /**
+       * on model
+       */
+      async onTag(field) {
+        // get value
+        if (!field) field = this.refs.tag.val();
+
+        // model
+        if (!field || !field.length) return;
+
+        // get field
+        const result = await (await fetch(`/app/${eden.get('dashup').get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
+        
+        // set model
+        this.props.onData('tag', result.data);
+      }
+
+      /**
+       * on model
+       */
+      async onUser(field) {
+        // get value
+        if (!field) field = this.refs.user.val();
+
+        // model
+        if (!field || !field.length) return;
+
+        // get field
+        const result = await (await fetch(`/app/${eden.get('dashup').get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
+        
+        // set model
+        this.props.onData('user', result.data);
+      }
+
+      /**
+       * on color
+       */
+      onDisplay(value) {
+        // set color
+        this.props.onData('display', value, true);
+        this.update();
+      }
+
+      /**
+       * get value
+       */
+      getModel() {
+        // return value
+        return this.props.page.get('data.model') ? [{ name : this.props.page.get('data.model.name'), value : this.props.page.get('data.model.id'), selected : true }] : [];
+      }
+
+      /**
+       * get value
+       */
+      getForms() {
+        // return value
+        return (this.props.page.get('data.forms') || []).map((form) => {
+          // return form value
+          return {
+            name     : form.name,
+            value    : form.id,
+            selected : true
+          };
+        });
+      }
+
+      /**
+       * get value
+       */
+      getBacklog() {
+        // return value
+        return [['Enabled', 'true'], ['Disabled', 'false']].map(([name, value]) => {
+          return {
+            name,
+            value,
+            selected : value === 'true' && !this.props.page.get('data.backlog.disabled'),
+          } 
+        });
+      }
+
+      /**
+       * get value
+       */
+      getForm() {
+        // return value
+        return this.props.page.get('data.form.id') ? [
+          {
+            name     : this.props.page.get('data.form.name'),
+            value    : this.props.page.get('data.form.id'),
+            selected : true
+          }
+        ] : [];
+      }
+
+      /**
+       * get field
+       */
+      getGroup() {
+        // return value
+        return this.props.page.get('data.group') ? [{ name : this.props.page.get('data.group.label'), value : (this.props.page.get('data.group.name') || this.props.page.get('data.group.uuid')), selected : true }] : [];
+      }
+
+      /**
+       * get field
+       */
+      getTag() {
+        // return value
+        return this.props.page.get('data.tag') ? [{ name : this.props.page.get('data.tag.label'), value : (this.props.page.get('data.tag.name') || this.props.page.get('data.tag.uuid')), selected : true }] : [];
+      }
+
+      /**
+       * get field
+       */
+      getUser() {
+        // return value
+        return this.props.page.get('data.user') ? [{ name : this.props.page.get('data.user.label'), value : (this.props.page.get('data.user.name') || this.props.page.get('data.user.uuid')), selected : true }] : [];
+      }
+
+      /**
+       * get group url
+       */
+      getGroupUrl() {
+        // return
+        return (this.props.page.get('data.forms') || []).map((f) => f.id).join('-');
+      }
+
+      /**
+       * on settings
+       *
+       * @param {Event} e
+       */
+      show() {
+        // show modal
+        this.refs.config.show();
+
+        // timeout
+        setTimeout(() => {
+          // refresh
+          if (this.refs.display.editor) this.refs.display.editor.refresh();
+        }, 200);
+      }
+
+      /**
+       * on settings
+       *
+       * @param {Event} e
+       */
+      hide() {
+        // show modal
+        this.refs.config.hide();
+      }
+
+      /**
+       *
+       */
+      async init () {
+        // check page
+        if (this.props.page.get('data.forms.0.id')) {
+          // load fields
+          const fields = await eden.router.get(`/app/${this.eden.get('dashup').get('_id')}/form/${this.getGroupUrl()}/fields`);
+
+          // update
+          this.update({
+            test : await this.eden.get('dashup').page(this.props.page.get('data.model.id')).sort('created_at', -1).findOne(),
+            fields,
+          });
+        }
+      }
+    }
+  </script>
+</page-board-config>
