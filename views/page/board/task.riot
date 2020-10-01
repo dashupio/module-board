@@ -118,10 +118,19 @@
        */
       getTags() {
         // get tag values
-        const options = this.props.page.get('data.tag.options') || [];
+        const tagField = (this.props.formFields || []).find((f) => f.uuid === this.props.page.get('data.tag'));
+
+        // tag field
+        if (!tagField) return [];
+
+        // get options
+        const options = tagField.options || [];
+
+        // check options
+        if (!options.length) return [];
 
         // get value
-        let val = this.props.item.get(this.props.page.get('data.tag.name') || this.props.page.get('data.tag.uuid')) || [];
+        let val = this.props.item.get(tagField.name || tagField.uuid) || [];
 
         // set value
         if (typeof val === 'string') val = [val];
@@ -137,8 +146,14 @@
        * get tags
        */
       getUsers() {
+        // get tag values
+        const userField = (this.props.formFields || []).find((f) => f.uuid === this.props.page.get('data.user')) || {};
+
+        // check options
+        if (!userField) return [];
+
         // get value
-        let val = this.props.item.get(this.props.page.get('data.user.name') || this.props.page.get('data.user.uuid')) || [];
+        let val = this.props.item.get(userField.name || userField.uuid) || [];
 
         // set value
         if (val && !Array.isArray(val)) val = [val];
@@ -171,7 +186,7 @@
        */
       hasTags() {
         // tag uuid
-        return !!this.props.page.get('data.tag.uuid');
+        return !!this.props.page.get('data.tag');
       }
 
       /**
@@ -179,7 +194,7 @@
        */
       hasUser() {
         // tag uuid
-        return !!this.props.page.get('data.user.uuid');
+        return !!this.props.page.get('data.user');
       }
 
       /**

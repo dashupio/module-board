@@ -13,36 +13,65 @@
       Please select a <b>grouping field</b> for the board.
     </a>
 
-    <div class="view-columns flex-1" if={ state.board && props.page.get('data.group') }>
-      <div each={ (column, i) in state.board } data-column={ column.id } class={ `${column.id === 'backlog' && props.page.get('data.backlog.disabled') ? 'd-none' : ''}` }>
+    <!-- LOADING -->
+    <div if={ !state.columns } class="text-center my-5 py-5">
+      <i class="fa fa-spin fa-spinner h1" />
+    </div>
+    <!-- / LOADING -->
+
+    <!-- BOARD -->
+    <div class="view-columns flex-1" if={ props.page.get('data.group') && state.columns }>
+      <!-- BACKLOG -->
+      <div data-column="backlog" if={ !props.page.get('data.backlog.disabled') }>
         <div class="column-header">
-          <i if={ !column.name }>N/A</i>
-          { column.id === 'backlog' ? (props.page.get('data.backlog.name') || 'Backlog') : column.name }
+          { props.page.get('data.backlog.name') || 'Backlog' }
         </div>
         <div class="column-body">
           <div class="column-body-inner">
             <div class="card">
-              <div class="card-body task-container" data-id={ column.id } if={ !loading(column.id) }>
-                <page-board-task each={ (item, i) in getItems(column) } if={ (column.id === 'backlog' && !item.get(`${column.key}.0`)) || item.get(`${column.key}.0`) === column.id } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...props } />
+              <div class="card-body task-container" data-id="backlog" if={ !loading('backlog') }>
+                <page-board-task each={ (item, i) in getItems({ value : 'backlog' }) } if={ !item.get(`${state.columns.name || state.columns.uuid}.0`) || item.get(`${state.columns.name || state.columns.uuid}.0`) === 'backlog' } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...props } />
               </div>
-              <div class="card-body task-container text-center" data-id={ column.id } if={ loading(column.id) }>
+              <div class="card-body task-container text-center" data-id="backlog" if={ loading('backlog') }>
                 <i class="fa fa-spinner fa-spin" />
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <div if={ !state.board } class="text-center my-5 py-5">
-      <i class="fa fa-spin fa-spinner h1" />
-    </div>
+      <!-- / BACKLOG -->
 
+      <!-- COLUMNS -->
+      <div each={ (column, i) in state.columns.options } data-column={ column.value }>
+        <div class="column-header">
+          <i if={ !column.label }>N/A</i>
+          { column.label }
+        </div>
+        <div class="column-body">
+          <div class="column-body-inner">
+            <div class="card">
+              <div class="card-body task-container" data-id={ column.value } if={ !loading(column.value) }>
+                <page-board-task each={ (item, i) in getItems(column) } if={ item.get(`${state.columns.name || state.columns.uuid}.0`) === column.value } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...props } />
+              </div>
+              <div class="card-body task-container text-center" data-id={ column.value } if={ loading(column.value) }>
+                <i class="fa fa-spinner fa-spin" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- / COLUMNS -->
+    </div>
+    <!-- / BOARD -->
+
+    <!-- TAGS -->
     <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'tag' } aria-labelledby={ `tag-${state.model.get('_id')}` } id={ `tag-dd-${state.model.get('_id')}` }>
       <dashup-tag ref={ ref('model') } { ...props } />
     </div>
     <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'user' } aria-labelledby={ `user-${state.model.get('_id')}` } id={ `user-dd-${state.model.get('_id')}` }>
       <dashup-user ref={ ref('model') } { ...props } />
     </div>
+    <!-- / TAGS -->
   </div>
 
   <script>
@@ -308,15 +337,16 @@
       getItems(col) {
         // check frontend
         if (typeof window === 'undefined') return [];
+        if (!this.state.columns) return [];
 
         // return queries
         return (this.state.items || []).filter((row) => {
           // value
-          const value = row.get(`${col.key}.0`);
+          const value = row.get(`${this.state.columns.name || this.state.columns.uuid}.0`);
 
           // check col
-          if (value === (typeof col.value !== 'undefined' ? col.value : col.id)) return true;
-          if ((!value || value === 'backlog') && col.id === 'backlog') return true;
+          if (value === col.value) return true;
+          if ((!value || value === 'backlog') && col.value === 'backlog') return true;
         }).sort((a, b) => {
           // sort order
           const aC = a.get(`_meta.${this.props.page.get('_id')}.order`) || 0;
@@ -327,6 +357,38 @@
           if (bC < aC) return 1;
           return 0;
         });
+      }
+
+      /**
+       * get fields
+       */
+      getFields() {
+        // reduce
+        return (this.props.page.get('data.forms') || []).reduce((accum, form) => {
+          // check form
+          if (!form) return accum;
+
+          // get form
+          const actualForm = this.props.dashup.page(form);
+
+          // check fields
+          if (!actualForm || !actualForm.get('data.fields')) return [];
+
+          // return data
+          accum.push(...(actualForm.get('data.fields').map((field) => {
+            // clone field
+            const newField = { ...field };
+
+            // set form
+            newField.form = form;
+
+            // new field
+            return newField;
+          })));
+
+          // return accum
+          return accum;
+        }, []);
       }
 
 
@@ -357,14 +419,13 @@
           this.state.items.removeListener('update', this.scheduleUpdate);
         }
 
-        // get board
-        const res = await fetch(`/app/board/${this.props.page.get('_id')}/board`, {
-          method : 'POST',
-        });
+        // get column field
+        const fields = this.getFields();
+        const columns = fields.find((f) => f.uuid === this.props.page.get('data.group'));
 
         // get model
         let items = [];
-        const model = this.props.page.get('data.model.id');
+        const model = this.props.page.get('data.model');
 
         // query by
         if (model) {
@@ -374,7 +435,7 @@
           // check items
           if ((this.props.page.get('data.forms') || []).length) {
             // loop forms
-            query = query.in('_meta.form', this.props.page.get('data.forms').map((f) => f.id));
+            query = query.in('_meta.form', this.props.page.get('data.forms'));
           }
 
           // load filter
@@ -407,7 +468,8 @@
         // update
         this.update({
           items,
-          board : (await res.json()).data
+          fields,
+          columns,
         });
 
         // safe update
