@@ -18,20 +18,13 @@ class BoardModule extends Module {
   }
   
   /**
-   * Register all page interfaces here
-   * 
-   * ```
-   * // register connect class
-   * register(Page);
-   * ```
-   * 
-   * Class `Page` should extend `require('@dashup/module').Page`
-   * 
-   * @param {Function} register 
+   * registers dashup structs
+   *
+   * @param {*} register 
    */
-  pages(register) {
+  register(fn) {
     // register sms action
-    register(BoardPage);
+    fn('page', BoardPage);
   }
 }
 

@@ -3,7 +3,7 @@
     <label class="form-label">
       Board Model
     </label>
-    <eden-select on-change={ () => onModel() } ref={ ref('model') } url={ `/app/${eden.get('dashup').get('_id')}/model/list` } placeholder="Select Model" data={ getModel() } />
+    <eden-select on-change={ (e, val) => onModel(val) } ref={ ref('model') } placeholder="Select Model" data={ getModel() } />
     <small>
       The model this page should display.
     </small>
@@ -13,7 +13,7 @@
     <label class="form-label">
       Board Forms
     </label>
-    <eden-select onchange={ (e) => onForms(e) } ref={ ref('forms') } url={ `/app/${eden.get('dashup').get('_id')}/form/${props.page.get('data.model.id')}/list` } placeholder="Select Forms" data={ getForms() } multiple={ true } />
+    <eden-select on-change={ (e, val) => onForms(val) } ref={ ref('forms') } placeholder="Select Forms" data={ getForms() } multiple={ true } />
     <small>
       The forms to filter by for data.
     </small>
@@ -23,7 +23,7 @@
     <label class="form-label">
       Modal Form
     </label>
-    <eden-select onchange={ (e) => onForm(e) } ref={ ref('form') } url={ `/app/${eden.get('dashup').get('_id')}/form/${props.page.get('data.model.id')}/list` } placeholder="Select Form" data={ getForm() } />
+    <eden-select on-change={ (e, val) => onForm(val) } ref={ ref('form') } placeholder="Select Form" data={ getForm() } />
     <small>
       The form that will show in the modal when viewing a task.
     </small>
@@ -33,13 +33,12 @@
     <hr />
       
     <div class="mb-3">
-      <label class="form-label">
-        Backlog Enabled
-      </label>
-      <eden-select on-change={ (e, val) => onBacklogEnabled(val) } ref={ ref('backlog') } placeholder="Select Backlog Enabled" data={ getBacklog() } />
-      <small>
-        Toggles the backlog column.
-      </small>
+      <div class="form-check form-switch">
+        <input class="form-check-input" id="is-required" type="checkbox" onchange={ (e) => onBacklog(e) } { ...getProps({ checked : !props.page.get('data.backlog.disabled') }) }>
+        <label class="form-check-label" for="is-required">
+          Backlog enabled
+        </label>
+      </div>
     </div>
 
     <div class="mb-3" if={ !props.page.get('data.backlog.disabled') }>
@@ -51,12 +50,14 @@
         The name of the backlog column.
       </small>
     </div>
+
+    <hr />
       
     <div class="mb-3">
       <label class="form-label">
         Group By
       </label>
-      <eden-select on-change={ (e, val) => onGroup(val) } ref={ ref('group') } url={ `/app/${eden.get('dashup').get('_id')}/form/${getGroupUrl()}/order-select-radio/fields` } placeholder="Select Field" data={ getGroup() } />
+      <eden-select on-change={ (e, val) => onGroup(val) } ref={ ref('group') } url={ `/app/${props.dashup.get('_id')}/form/${getGroupUrl()}/order-select-radio/fields` } placeholder="Select Field" data={ getGroup() } />
       <small>
         The columns that will show on this page.
       </small>
@@ -66,7 +67,7 @@
       <label class="form-label">
         Tag Field
       </label>
-      <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } url={ `/app/${eden.get('dashup').get('_id')}/form/${getGroupUrl()}/tag-select/fields` } placeholder="Select Tag Field" data={ getTag() } />
+      <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } url={ `/app/${props.dashup.get('_id')}/form/${getGroupUrl()}/tag-select/fields` } placeholder="Select Tag Field" data={ getTag() } />
       <small>
         Selecting a tag field will allow you to tag tasks.
       </small>
@@ -76,7 +77,7 @@
       <label class="form-label">
         User Field
       </label>
-      <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } url={ `/app/${eden.get('dashup').get('_id')}/form/${getGroupUrl()}/user/fields` } placeholder="Select User Field" data={ getUser() } />
+      <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } url={ `/app/${props.dashup.get('_id')}/form/${getGroupUrl()}/user/fields` } placeholder="Select User Field" data={ getUser() } />
       <small>
         Selecting a user field will allow you to assign tasks to that user.
       </small>
@@ -112,53 +113,46 @@
       /**
        * on before mount
        */
-      onBeforeMount(...args) {
-        // on before mount
-        super.onBeforeMount(...args);
-      }
-
-      /**
-       * on before mount
-       */
-      onMounted(...args) {
-        // on before mount
-        super.onMounted(...args);
-
-        // init
-        this.init();
+      onBeforeMount() {
+        // bind methods
+        this.onTag = this.onTag.bind(this);
+        this.onUser = this.onUser.bind(this);
+        this.onForm = this.onForm.bind(this);
+        this.onModel = this.onModel.bind(this);
+        this.onGroup = this.onGroup.bind(this);
+        this.onForms = this.onForms.bind(this);
+        this.onFilter = this.onFilter.bind(this);
+        this.onBacklog = this.onBacklog.bind(this);
+        this.onBacklogName = this.onBacklogName.bind(this);
       }
 
       /**
        * on model
        */
-      async onModel() {
+      async onModel(val) {
         // get value
-        const model = this.refs.model.val();
+        if (!val) val = this.refs.model.val();
 
         // model
-        if (!model || !model.length) return;
+        if (!val || !val.length) return;
 
         // get module
-        const mod = this.eden.get('dashup').page(model);
+        const mod = this.props.dashup.page(val);
 
         // loading model
         this.loading('model', true);
 
         // set again
-        if (mod.get('_id') !== this.props.page.get('data.model.id')) {
+        if (mod.get('_id') !== this.props.page.get('data.model')) {
           // set form again
-          await this.props.onData('form', null);
+          await this.props.data('form', null);
         }
         
         // set model
-        await this.props.onData('model', {
-          id   : mod.get('_id'),
-          name : mod.get('name'),
-        });
+        await this.props.data('model', mod.get('_id'));
 
         // loading model
         this.loading('model', false);
-        this.init();
       }
 
       /**
@@ -166,53 +160,63 @@
        */
       onFilter(val) {
         // set model
-        this.props.onData('filter', JSON.stringify(val));
+        this.props.data('filter', JSON.stringify(val));
       }
 
       /**
        * on model
        */
-      onForm(e) {
+      onForm(val) {
         // forms
-        let form = this.refs.form.val();
+        if (!val) val = this.refs.form.val();
 
         // model
-        if (!form) return;
+        if (!val) return;
 
         // set module
-        const mod = this.eden.get('dashup').page(form);
+        const mod = this.props.dashup.page(val);
         
         // set model
-        this.props.onData('form', {
-          id   : mod.get('_id'),
-          name : mod.get('name'),
-        });
+        this.props.data('form', mod.get('_id'));
       }
 
       /**
-       * on model
+       * on forms
        */
-      onForms(e) {
+      onForms(vals) {
         // forms
-        let forms = this.refs.forms.val();
-
-        // model
-        if (!forms || !forms.length) forms = [];
+        if (!vals) vals = this.refs.forms.val();
+        if (!vals) vals = [];
+        if (!Array.isArray(vals)) vals = [vals];
 
         // set module
-        const mods = forms.map((form) => {
+        const forms = vals.map((val) => {
           // return form
-          return this.eden.get('dashup').page(form);
+          return this.props.dashup.page(val);
         });
         
         // set model
-        this.props.onData('forms', mods.map((mod) => {
+        this.props.data('forms', forms.map((mod) => {
           // return forms
-          return {
-            id   : mod.get('_id'),
-            name : mod.get('name'),
-          };
+          return mod.get('_id');
         }));
+      }
+
+      /**
+       * on model
+       */
+      async onBacklog(e) {
+        // get value
+        const val = $(e.target).is(':checked');
+
+        // get backlog
+        const backlog = this.props.page.get('data.backlog') || {};
+
+        // set value
+        backlog.disabled = !val;
+        
+        // set model
+        this.props.data('backlog', backlog);
       }
 
       /**
@@ -232,24 +236,7 @@
         backlog.name = val;
         
         // set model
-        this.props.onData('backlog', backlog);
-      }
-
-      /**
-       * on model
-       */
-      async onBacklogEnabled(val) {
-        // get value
-        val = val === 'true';
-
-        // get backlog
-        const backlog = this.props.page.get('data.backlog') || {};
-
-        // set value
-        backlog.disabled = !val;
-        
-        // set model
-        this.props.onData('backlog', backlog);
+        this.props.data('backlog', backlog);
       }
 
       /**
@@ -263,10 +250,10 @@
         if (!field || !field.length) return;
 
         // get field
-        const result = await (await fetch(`/app/${eden.get('dashup').get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
+        const result = await (await fetch(`/app/${props.dashup.get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
         
         // set model
-        this.props.onData('group', result.data);
+        this.props.data('group', result.data);
       }
 
       /**
@@ -280,10 +267,10 @@
         if (!field || !field.length) return;
 
         // get field
-        const result = await (await fetch(`/app/${eden.get('dashup').get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
+        const result = await (await fetch(`/app/${props.dashup.get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
         
         // set model
-        this.props.onData('tag', result.data);
+        this.props.data('tag', result.data);
       }
 
       /**
@@ -297,10 +284,10 @@
         if (!field || !field.length) return;
 
         // get field
-        const result = await (await fetch(`/app/${eden.get('dashup').get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
+        const result = await (await fetch(`/app/${props.dashup.get('_id')}/form/${this.getgroupurl()}/fields/${field}`)).json();
         
         // set model
-        this.props.onData('user', result.data);
+        this.props.data('user', result.data);
       }
 
       /**
@@ -308,7 +295,7 @@
        */
       onDisplay(value) {
         // set color
-        this.props.onData('display', value, true);
+        this.props.data('display', value, true);
         this.update();
       }
 
@@ -317,20 +304,15 @@
        */
       getModel() {
         // return value
-        return this.props.page.get('data.model') ? [{ name : this.props.page.get('data.model.name'), value : this.props.page.get('data.model.id'), selected : true }] : [];
-      }
-
-      /**
-       * get value
-       */
-      getForms() {
-        // return value
-        return (this.props.page.get('data.forms') || []).map((form) => {
-          // return form value
+        return Array.from(this.props.dashup.get('pages').values()).filter((page) => {
+          // return model pages
+          return page.get('type') === 'model';
+        }).map((page) => {
+          // return type
           return {
-            name     : form.name,
-            value    : form.id,
-            selected : true
+            name     : page.get('name'),
+            value    : page.get('_id'),
+            selected : this.props.page.get('data.model') === page.get('_id'),
           };
         });
       }
@@ -338,14 +320,18 @@
       /**
        * get value
        */
-      getBacklog() {
+      getForms() {
         // return value
-        return [['Enabled', 'true'], ['Disabled', 'false']].map(([name, value]) => {
+        return Array.from(this.props.dashup.get('pages').values()).filter((page) => {
+          // return model pages
+          return page.get('type') === 'form';
+        }).map((page) => {
+          // return type
           return {
-            name,
-            value,
-            selected : value === 'true' && !this.props.page.get('data.backlog.disabled'),
-          } 
+            name     : page.get('name'),
+            value    : page.get('_id'),
+            selected : (this.props.page.get('data.forms') || []).includes(page.get('_id')),
+          };
         });
       }
 
@@ -354,13 +340,17 @@
        */
       getForm() {
         // return value
-        return this.props.page.get('data.form.id') ? [
-          {
-            name     : this.props.page.get('data.form.name'),
-            value    : this.props.page.get('data.form.id'),
-            selected : true
-          }
-        ] : [];
+        return Array.from(this.props.dashup.get('pages').values()).filter((page) => {
+          // return model pages
+          return page.get('type') === 'form';
+        }).map((page) => {
+          // return type
+          return {
+            name     : page.get('name'),
+            value    : page.get('_id'),
+            selected : this.props.page.get('data.form') === page.get('_id'),
+          };
+        });
       }
 
       /**
@@ -396,6 +386,20 @@
       }
 
       /**
+       * get props
+       */
+      getProps(obj) {
+        // return get props
+        return Object.keys(obj).reduce((accum, key) => {
+          // set accum
+          if (obj[key]) accum[key] = true;
+
+          // return accum
+          return accum;
+        }, {});
+      }
+
+      /**
        * on settings
        *
        * @param {Event} e
@@ -422,20 +426,33 @@
       }
 
       /**
-       *
+       * ref
        */
-      async init () {
-        // check page
-        if (this.props.page.get('data.forms.0.id')) {
-          // load fields
-          const fields = await eden.router.get(`/app/${this.eden.get('dashup').get('_id')}/form/${this.getGroupUrl()}/fields`);
+      ref(name) {
+        // set refs
+        if (!this.refs) this.refs = {};
 
-          // update
-          this.update({
-            test : await this.eden.get('dashup').page(this.props.page.get('data.model.id')).sort('created_at', -1).findOne(),
-            fields,
-          });
-        }
+        // return ref function
+        return (that) => {
+          // set ref
+          this.refs[name] = that;
+        };
+      }
+
+      /**
+       * set loading
+       */
+      loading(type, way) {
+        // set loading
+        if (!this.__loading) this.__loading = new Map();
+
+        // check loading
+        if (!type) return !!Array.from(this.__loading.values()).find((v) => v);
+        if (typeof way === 'undefined') return !!this.__loading.get(type);
+
+        // set loading
+        this.__loading.set(type, way);
+        this.update();
       }
     }
   </script>

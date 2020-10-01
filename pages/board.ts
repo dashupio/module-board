@@ -1,11 +1,11 @@
 
 // import page interface
-import { Page } from '@dashup/module';
+import { Struct } from '@dashup/module';
 
 /**
  * build address helper
  */
-export default class BoardPage extends Page {
+export default class BoardPage extends Struct {
 
   /**
    * returns page type
