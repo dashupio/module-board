@@ -30,7 +30,7 @@
           <div class="column-body-inner">
             <div class="card">
               <div class="card-body task-container" data-id="backlog" if={ !loading('backlog') }>
-                <page-board-task each={ (item, i) in getItems({ value : 'backlog' }) } if={ !item.get(`${state.columns.name || state.columns.uuid}.0`) || item.get(`${state.columns.name || state.columns.uuid}.0`) === 'backlog' } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+                <div each={ (item, i) in getItems({ value : 'backlog' }) } is="page-board-task" data-id={ item.get('_id') } if={ !item.get(`${state.columns.name || state.columns.uuid}.0`) || item.get(`${state.columns.name || state.columns.uuid}.0`) === 'backlog' } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id="backlog" if={ loading('backlog') }>
                 <i class="fa fa-spinner fa-spin" />
@@ -51,7 +51,7 @@
           <div class="column-body-inner">
             <div class="card">
               <div class="card-body task-container" data-id={ column.value } if={ !loading(column.value) }>
-                <page-board-task each={ (item, i) in getItems(column) } if={ item.get(`${state.columns.name || state.columns.uuid}.0`) === column.value } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } if={ item.get(`${state.columns.name || state.columns.uuid}.0`) === column.value } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id={ column.value } if={ loading(column.value) }>
                 <i class="fa fa-spinner fa-spin" />
@@ -256,7 +256,7 @@
         });
 
         // container
-        const container = jQuery(this.$(`#tag-dd-${model.get('_id')}`));
+        const container = $(this.$(`#tag-dd-${model.get('_id')}`));
 
         // create close popped
         const closePopped = (e) => {
@@ -273,13 +273,13 @@
             });
 
             // remove listener
-            jQuery(document).off('mouseup', closePopped);
+            $(document).off('mouseup', closePopped);
           }
         };
         this.closePopped = closePopped;
 
         // add listener
-        jQuery(document).on('mouseup', closePopped);
+        $(document).on('mouseup', closePopped);
       }
 
       /**
@@ -303,7 +303,7 @@
         });
 
         // container
-        const container = jQuery(this.$(`#user-dd-${model.get('_id')}`));
+        const container = $(this.$(`#user-dd-${model.get('_id')}`));
 
         // create close popped
         const closePopped = (e) => {
@@ -320,13 +320,13 @@
             });
 
             // remove listener
-            jQuery(document).off('mouseup', closePopped);
+            $(document).off('mouseup', closePopped);
           }
         };
         this.closePopped = closePopped;
 
         // add listener
-        jQuery(document).on('mouseup', closePopped);
+        $(document).on('mouseup', closePopped);
       }
 
       /**
@@ -542,7 +542,7 @@
           // push
           this.sortables.push(new Sortable(item, {
             group          : 'task-container',
-            draggable      : '[is="board-task"]',
+            draggable      : '[is="page-board-task"]',
             animation      : 200,
             fallbackOnBody : true,
 
@@ -553,8 +553,8 @@
               const source = e.from;
 
               // set column
-              const col    = jQuery(target).attr('data-id') || null;
-              const column = this.state.board.find(c => c.id === col);
+              const col    = $(target).attr('data-id') || null;
+              const column = this.state.columns.options.find(c => c.value === col);
               
               // updates
               const updates = [];
@@ -563,42 +563,39 @@
               this.__canUpdate = true;
 
               // list all in target
-              jQuery('.card-task', target).each((i, item) => {
+              $('.card-task', target).each((i, item) => {
                 // make sure not 0
                 i = i + 1;
 
                 // get item
                 const task = (this.state.items || []).find((t) => {
                   // return accumulator
-                  return t.get('_id') === jQuery(item).attr('data-id');
+                  return t.get('_id') === $(item).attr('data-id');
                 });
 
                 // check column fields
-                if ((task.get(`${column.key}.0`) || 'backlog') !== (col || 'backlog')) {
+                if ((task.get(`${this.state.columns.name || this.state.columns.uuid}.0`) || 'backlog') !== (col || 'backlog')) {
                   // push update
-                  updates.push([task.get('_id'), column.key, [(col || 'backlog')]]);
-                  task.set(column.key, [(col || 'backlog')]);
+                  updates.push(task);
+                  task.set(`${this.state.columns.name || this.state.columns.uuid}`, [(col || 'backlog')]);
                 }
-                if (task.get(`${this.props.page.get('_id')}.order`) !== i) {
-                  // push update
-                  updates.push([task.get('_id'), `_meta.${this.props.page.get('_id')}.order`, i]);
+
+                // check order
+                if (task.get(`_meta.${this.props.page.get('_id')}.order`) !== i) {
+                  // set order
+                  updates.push(task);
                   task.set(`_meta.${this.props.page.get('_id')}.order`, i);
                 }
               });
 
               // check updates
-              if (updates.length) {
-                // post updates
-                await eden.router.post(`/app/board/${this.props.page.get('_id')}/update`, {
-                  updates,
-                });
-              }
+              await Promise.all(updates.map((update) => update.save()));
 
               // set updating
               this.__canUpdate = false;
 
               // load columns
-              [col, jQuery(source).attr('data-id')].forEach((col) => {
+              [col, $(source).attr('data-id')].forEach((col) => {
                 this.loading(col || 'backlog', true);
                 this.loading(col || 'backlog', false);
               });
@@ -627,16 +624,16 @@
               const alters = this.props.page.get('data.alters') || [];
 
               // check columns
-              jQuery('.card', target).each((i, item) => {
+              $('.card', target).each((i, item) => {
                 // get found
-                let found = alters.find((col) => col.id === jQuery(item).attr('data-column'));
-                const column = this.state.find((col) => col.id === jQuery(item).attr('data-column'));
+                let found = alters.find((col) => col.id === $(item).attr('data-column'));
+                const column = this.state.find((col) => col.id === $(item).attr('data-column'));
 
                 // check found
                 if (!found) {
                   // set found
                   found = {
-                    id    : jQuery(item).attr('data-column'),
+                    id    : $(item).attr('data-column'),
                     order : i,
                   };
 
@@ -649,11 +646,6 @@
 
                 // set in column
                 column.set('order', i);
-              });
-
-              // set
-              this.update({
-                board : this.state.board,
               });
 
               // update
