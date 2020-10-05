@@ -1,114 +1,116 @@
 <page-board-config>
-  <div class="mb-3">
-    <label class="form-label">
-      Board Model
-    </label>
-    <eden-select on-change={ (e, val) => onModel(val) } ref={ ref('model') } placeholder="Select Model" data={ getModel() } />
-    <small>
-      The model this page should display.
-    </small>
-  </div>
-  
-  <div if={ !loading('model') && props.page.get('data.model') } class="mb-3">
-    <label class="form-label">
-      Board Forms
-    </label>
-    <eden-select on-change={ (e, val) => onForms(val) } ref={ ref('forms') } placeholder="Select Forms" data={ getForms() } multiple={ true } />
-    <small>
-      The forms to filter by for data.
-    </small>
-  </div>
-  
-  <div if={ !loading('model') && props.page.get('data.model') } class="mb-3">
-    <label class="form-label">
-      Modal Form
-    </label>
-    <eden-select on-change={ (e, val) => onForm(val) } ref={ ref('form') } placeholder="Select Form" data={ getForm() } />
-    <small>
-      The form that will show in the modal when viewing a task.
-    </small>
-  </div>
-
-  <div if={ props.page.get('data.forms.0') }>
-    <hr />
-      
+  <div>
     <div class="mb-3">
-      <div class="form-check form-switch">
-        <input class="form-check-input" id="is-required" type="checkbox" onchange={ (e) => onBacklog(e) } { ...getProps({ checked : !props.page.get('data.backlog.disabled') }) }>
-        <label class="form-check-label" for="is-required">
-          Backlog enabled
+      <label class="form-label">
+        Board Model
+      </label>
+      <eden-select on-change={ (e, val) => onModel(val) } ref={ ref('model') } placeholder="Select Model" data={ getModel() } />
+      <small>
+        The model this page should display.
+      </small>
+    </div>
+    
+    <div if={ !loading('model') && props.page.get('data.model') } class="mb-3">
+      <label class="form-label">
+        Board Forms
+      </label>
+      <eden-select on-change={ (e, val) => onForms(val) } ref={ ref('forms') } placeholder="Select Forms" data={ getForms() } multiple={ true } />
+      <small>
+        The forms to filter by for data.
+      </small>
+    </div>
+    
+    <div if={ !loading('model') && props.page.get('data.model') } class="mb-3">
+      <label class="form-label">
+        Modal Form
+      </label>
+      <eden-select on-change={ (e, val) => onForm(val) } ref={ ref('form') } placeholder="Select Form" data={ getForm() } />
+      <small>
+        The form that will show in the modal when viewing a task.
+      </small>
+    </div>
+
+    <div if={ props.page.get('data.forms.0') }>
+      <hr />
+        
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" id="is-required" type="checkbox" onchange={ (e) => onBacklog(e) } { ...getProps({ checked : !props.page.get('data.backlog.disabled') }) }>
+          <label class="form-check-label" for="is-required">
+            Backlog enabled
+          </label>
+        </div>
+      </div>
+
+      <div class="mb-3" if={ !props.page.get('data.backlog.disabled') }>
+        <label class="form-label">
+          Backlog Name
         </label>
+        <input type="text" class="form-control" onchange={ (e) => onBacklogName(e) } placeholder="Set Backlog Name" data={ props.page.get('data.backlog.name') || 'Backlog' } />
+        <small>
+          The name of the backlog column.
+        </small>
+      </div>
+
+      <hr />
+        
+      <div class="mb-3">
+        <label class="form-label">
+          Group By
+        </label>
+        <eden-select on-change={ (e, val) => onGroup(val) } ref={ ref('group') } placeholder="Select Field" data={ getGroup() } />
+        <small>
+          The columns that will show on this page.
+        </small>
+      </div>
+        
+      <div class="mb-3">
+        <label class="form-label">
+          Tag Field
+        </label>
+        <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } placeholder="Select Tag Field" data={ getTag() } />
+        <small>
+          Selecting a tag field will allow you to tag tasks.
+        </small>
+      </div>
+        
+      <div class="mb-3">
+        <label class="form-label">
+          User Field
+        </label>
+        <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } placeholder="Select User Field" data={ getUser() } />
+        <small>
+          Selecting a user field will allow you to assign tasks to that user.
+        </small>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">
+          Item Display
+        </label>
+        <code-block ref={ ref('display') } mode="handlebars" content={ props.page.get('data.display') || '' } prevent-update={ true } on-change={ (e) => onDisplay(e) } />
+        <div class="alert alert-primary mt-2">
+          <hbs template={ props.page.get('data.display') || '' } data={ state.test ? state.test.get() : {} } />
+        </div>
       </div>
     </div>
 
-    <div class="mb-3" if={ !props.page.get('data.backlog.disabled') }>
-      <label class="form-label">
-        Backlog Name
-      </label>
-      <input type="text" class="form-control" onchange={ (e) => onBacklogName(e) } placeholder="Set Backlog Name" data={ props.page.get('data.backlog.name') || 'Backlog' } />
-      <small>
-        The name of the backlog column.
-      </small>
-    </div>
+    <div if={ props.page.get('data.forms.0.id') }>
+      <hr />
+        
+      <div class="mb-3">
+        <label class="form-label">
+          Filter By
+        </label>
 
-    <hr />
-      
-    <div class="mb-3">
-      <label class="form-label">
-        Group By
-      </label>
-      <eden-select on-change={ (e, val) => onGroup(val) } ref={ ref('group') } placeholder="Select Field" data={ getGroup() } />
-      <small>
-        The columns that will show on this page.
-      </small>
-    </div>
-      
-    <div class="mb-3">
-      <label class="form-label">
-        Tag Field
-      </label>
-      <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } placeholder="Select Tag Field" data={ getTag() } />
-      <small>
-        Selecting a tag field will allow you to tag tasks.
-      </small>
-    </div>
-      
-    <div class="mb-3">
-      <label class="form-label">
-        User Field
-      </label>
-      <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } placeholder="Select User Field" data={ getUser() } />
-      <small>
-        Selecting a user field will allow you to assign tasks to that user.
-      </small>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">
-        Item Display
-      </label>
-      <code-block ref={ ref('display') } mode="handlebars" content={ props.page.get('data.display') || '' } prevent-update={ true } on-change={ (e) => onDisplay(e) } />
-      <div class="alert alert-primary mt-2">
-        <hbs template={ props.page.get('data.display') || '' } data={ state.test ? state.test.get() : {} } />
+        <dashup-query fields={ getFields() } on-change={ (val) => onFilter(val) } value={ props.page.get('data.filter') ? JSON.parse(props.page.get('data.filter')) : [] } />
       </div>
-    </div>
-  </div>
-
-  <div if={ props.page.get('data.forms.0.id') }>
-    <hr />
-      
-    <div class="mb-3">
-      <label class="form-label">
-        Filter By
-      </label>
-
-      <dashup-query fields={ getFields() } on-change={ (val) => onFilter(val) } value={ props.page.get('data.filter') ? JSON.parse(props.page.get('data.filter')) : [] } />
     </div>
   </div>
 
   <script>
     // export default
-    export default class DashupConfigGrid {
+    export default class PageBoardConfig {
 
 
       // ////////////////////////////////////////////////////////////////////////////
@@ -336,7 +338,7 @@
         // return value
         return Array.from(this.props.dashup.get('pages').values()).filter((page) => {
           // return model pages
-          return page.get('type') === 'form';
+          return page.get('type') === 'form' && page.get('data.model') === this.props.page.get('data.model');
         }).map((page) => {
           // return type
           return {
@@ -354,7 +356,7 @@
         // return value
         return Array.from(this.props.dashup.get('pages').values()).filter((page) => {
           // return model pages
-          return page.get('type') === 'form';
+          return page.get('type') === 'form' && page.get('data.model') === this.props.page.get('data.model');
         }).map((page) => {
           // return type
           return {
@@ -462,32 +464,6 @@
       // MISC METHODS
       //
       // ////////////////////////////////////////////////////////////////////////////
-
-      /**
-       * on settings
-       *
-       * @param {Event} e
-       */
-      show() {
-        // show modal
-        this.refs.config.show();
-
-        // timeout
-        setTimeout(() => {
-          // refresh
-          if (this.refs.display.editor) this.refs.display.editor.refresh();
-        }, 200);
-      }
-
-      /**
-       * on settings
-       *
-       * @param {Event} e
-       */
-      hide() {
-        // show modal
-        this.refs.config.hide();
-      }
 
       /**
        * ref

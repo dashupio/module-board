@@ -20,7 +20,7 @@ export default class BoardPage extends Struct {
    */
   get icon() {
     // return page type label
-    return 'fa fa-database';
+    return 'fa fa-columns';
   }
 
   /**
@@ -64,6 +64,6 @@ export default class BoardPage extends Struct {
    */
   get description() {
     // return description string
-    return 'Page Descripton';
+    return 'Kanban board view';
   }
 }

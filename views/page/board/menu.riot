@@ -1,3 +1,13 @@
 <page-board-menu>
-  <div></div>
+  <button if={ props.page.get('data.forms.0') } class="ml-2 btn btn-outline-success" onclick={ (e) => props.onItem(e) }>
+    <i class="fa fa-plus mr-2" /> Add New
+  </button>
+
+  <script>
+  
+    // export default
+    export default class PageFormMenu {
+      
+    }
+  </script>
 </page-board-menu>
