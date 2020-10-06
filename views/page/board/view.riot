@@ -679,7 +679,10 @@
         // check filter
         if (this.isFilter('me', true)) {
           // check vals
-          let vals = (task.get(this.props.page.get('data.user.name') || this.props.page.get('data.user.uuid')) || []);
+          const userField = this.state.fields.find((f) => f.uuid === this.props.page.get('data.user'));
+
+          // get vals
+          let vals = task.get(userField ? userField.name || userField.uuid : 'null') || [];
 
           // vals
           if (vals && !Array.isArray(vals)) vals = [vals];
@@ -687,16 +690,19 @@
           // only me
           if (!vals.find((val) => {
             // user
-            return val.user === eden.user.get('id');
+            return val.user === this.props.me.get('id');
           })) return false;
         }
 
         // check tags
         if ((this.props.page.get('user.filter.tags') || []).length) {
+          // check vals
+          const tagField = this.state.fields.find((f) => f.uuid === this.props.page.get('data.tag'));
+
           // check filter
           if (this.props.page.get('user.filter.tags').find((tag) => {
             // check tag exists on task
-            let val = task.get(this.props.page.get('data.tag.name') || this.props.page.get('data.tag.uuid')) || [];
+            let val = task.get(tagField ? tagField.name || tagField.uuid : 'null') || [];
 
             // set value
             if (typeof val === 'string') val = [val];

@@ -48,6 +48,7 @@ export default class BoardPage extends Struct {
       view   : 'page/board/view',
       menu   : 'page/board/menu',
       config : 'page/board/config',
+      filter : 'page/board/filter',
     };
   }
 
