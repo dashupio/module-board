@@ -103,7 +103,7 @@
           Filter By
         </label>
 
-        <dashup-query fields={ getFields() } on-change={ (val) => onFilter(val) } value={ props.page.get('data.filter') ? JSON.parse(props.page.get('data.filter')) : [] } />
+        <dashup-query fields={ props.context.fields } on-change={ (val) => onFilter(val) } value={ props.page.get('data.filter') ? JSON.parse(props.page.get('data.filter')) : [] } />
       </div>
     </div>
   </div>
@@ -152,20 +152,17 @@
         // model
         if (!val || !val.length) return;
 
-        // get module
-        const mod = this.props.dashup.page(val);
-
         // loading model
         this.loading('model', true);
 
         // set again
-        if (mod.get('_id') !== this.props.page.get('data.model')) {
+        if (val !== this.props.page.get('data.model')) {
           // set form again
           await this.props.data('form', null);
         }
         
         // set model
-        await this.props.data('model', mod.get('_id'));
+        await this.props.data('model', val);
 
         // loading model
         this.loading('model', false);
@@ -368,43 +365,11 @@
       }
 
       /**
-       * get fields
-       */
-      getFields() {
-        // reduce
-        return (this.props.page.get('data.forms') || []).reduce((accum, form) => {
-          // check form
-          if (!form) return accum;
-
-          // get form
-          const actualForm = this.props.dashup.page(form);
-
-          // check fields
-          if (!actualForm || !actualForm.get('data.fields')) return [];
-
-          // return data
-          accum.push(...(actualForm.get('data.fields').map((field) => {
-            // clone field
-            const newField = { ...field };
-
-            // set form
-            newField.form = form;
-
-            // new field
-            return newField;
-          })));
-
-          // return accum
-          return accum;
-        }, []);
-      }
-
-      /**
        * get field
        */
       getGroup() {
         // return value
-        return this.getFields().map((field) => {
+        return this.props.context.fields.map((field) => {
           // return fields
           return {
             name     : field.label || field.name,
@@ -419,7 +384,7 @@
        */
       getTag() {
         // return value
-        return this.getFields().map((field) => {
+        return this.props.context.fields.map((field) => {
           // return fields
           return {
             name     : field.label || field.name,
@@ -434,7 +399,7 @@
        */
       getUser() {
         // return value
-        return this.getFields().map((field) => {
+        return this.props.context.fields.map((field) => {
           // return fields
           return {
             name     : field.label || field.name,
