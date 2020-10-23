@@ -66,9 +66,9 @@
         
       <div class="mb-3">
         <label class="form-label">
-          Tag Field
+          Tag Field(s)
         </label>
-        <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } placeholder="Select Tag Field" data={ getTag() } />
+        <eden-select on-change={ (e, val) => onTag(val) } ref={ ref('tag') } placeholder="Select Tag Field" data={ getTag() } multiple={ true } />
         <small>
           Selecting a tag field will allow you to tag tasks.
         </small>
@@ -76,9 +76,9 @@
         
       <div class="mb-3">
         <label class="form-label">
-          User Field
+          User Field(s)
         </label>
-        <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } placeholder="Select User Field" data={ getUser() } />
+        <eden-select on-change={ (e, val) => onUser(val) } ref={ ref('user') } placeholder="Select User Field" data={ getUser() } multiple={ true } />
         <small>
           Selecting a user field will allow you to assign tasks to that user.
         </small>
@@ -95,7 +95,7 @@
       </div>
     </div>
 
-    <div if={ props.page.get('data.forms.0.id') }>
+    <div if={ props.page.get('data.forms.0') }>
       <hr />
         
       <div class="mb-3">
@@ -369,7 +369,7 @@
        */
       getGroup() {
         // return value
-        return this.props.context.fields.map((field) => {
+        return [...(this.props.context.fields)].filter((field) => ['select', 'checkbox'].includes(field.type)).map((field) => {
           // return fields
           return {
             name     : field.label || field.name,
@@ -384,12 +384,12 @@
        */
       getTag() {
         // return value
-        return this.props.context.fields.map((field) => {
+        return [...(this.props.context.fields)].filter((field) => ['select', 'checkbox'].includes(field.type)).map((field) => {
           // return fields
           return {
             name     : field.label || field.name,
             value    : field.uuid,
-            selected : this.props.page.get('data.tag') === field.uuid,
+            selected : (this.props.page.get('data.tag') || []).includes(field.uuid),
           };
         });
       }
@@ -399,12 +399,12 @@
        */
       getUser() {
         // return value
-        return this.props.context.fields.map((field) => {
+        return [...(this.props.context.fields)].filter((field) => field.type === 'user').map((field) => {
           // return fields
           return {
             name     : field.label || field.name,
             value    : field.uuid,
-            selected : this.props.page.get('data.user') === field.uuid,
+            selected : (this.props.page.get('data.user') || []).includes(field.uuid),
           };
         });
       }

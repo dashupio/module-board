@@ -43,13 +43,19 @@
       getTags() {
         // get tag values
         const fields = this.props.context.fields;
-        const tagField = fields.find((f) => f.uuid === this.props.page.get('data.tag'));
+        const tagFields = [...fields].filter((f) => (this.props.page.get('data.tag') || []).includes(f.uuid));
 
         // tag field
-        if (!tagField) return [];
+        if (!tagFields) return [];
 
         // get options
-        return tagField.options || [];
+        return tagFields.reduce((accum, field) => {
+          // push
+          accum.push(...(field.options || []));
+
+          // return accum
+          return accum;
+        }, []);
       }
     }
   </script>

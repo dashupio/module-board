@@ -648,10 +648,16 @@
         // check filter
         if (this.isFilter('me', true)) {
           // check vals
-          const userField = this.state.fields.find((f) => f.uuid === this.props.page.get('data.user'));
+          const userFields = [...(this.state.fields)].filter((f) => (this.props.page.get('data.user') || []).includes(f.uuid));
 
           // get vals
-          let vals = task.get(userField ? userField.name || userField.uuid : 'null') || [];
+          let vals = userFields.reduce((accum, userField) => {
+            // push to accum
+            accum.push(...(task.get(userField ? userField.name || userField.uuid : 'null') || []));
+
+            // return accum
+            return accum;
+          }, []);
 
           // vals
           if (vals && !Array.isArray(vals)) vals = [vals];
@@ -666,12 +672,18 @@
         // check tags
         if ((this.props.page.get('user.filter.tags') || []).length) {
           // check vals
-          const tagField = this.state.fields.find((f) => f.uuid === this.props.page.get('data.tag'));
+          const tagFields = [...(this.state.fields)].filter((f) => (this.props.page.get('data.tag') || []).includes(f.uuid));
 
           // check filter
           if (this.props.page.get('user.filter.tags').find((tag) => {
             // check tag exists on task
-            let val = task.get(tagField ? tagField.name || tagField.uuid : 'null') || [];
+            let val = tagFields.reduce((accum, tagField) => {
+              // push
+              accum.push(...(task.get(tagField ? tagField.name || tagField.uuid : 'null') || []));
+
+              // return accum
+              return accum;
+            }, []);
 
             // set value
             if (typeof val === 'string') val = [val];
