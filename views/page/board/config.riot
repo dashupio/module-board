@@ -156,13 +156,13 @@
         this.loading('model', true);
 
         // set again
-        if (val !== this.props.page.get('data.model')) {
+        if (this.props.page.get('data.form') && val !== this.props.page.get('data.model')) {
           // set form again
           await this.props.data('form', null);
         }
         
         // set model
-        await this.props.data('model', val);
+        this.props.data('model', val);
 
         // loading model
         this.loading('model', false);

@@ -14,7 +14,7 @@
     </a>
 
     <!-- LOADING -->
-    <div if={ !state.columns } class="text-center my-5 py-5">
+    <div if={ props.page.get('data.group') && !state.columns } class="text-center my-5 py-5">
       <i class="fa fa-spin fa-spinner h1" />
     </div>
     <!-- / LOADING -->
@@ -480,6 +480,15 @@
             this.scrolls.set(item.getAttribute('data-id'), e.target.scrollTop);
           });
         });
+
+        // current
+        if (!this.shownFirst && this.props.current) {
+          // shown first
+          this.shownFirst = true;
+
+          // on current
+          this.props.onItem(null, this.props.current);
+        }
       }
 
       /**
