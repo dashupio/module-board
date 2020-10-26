@@ -140,9 +140,9 @@
         // where
         this.props.page.on('data.model', this.init);
         this.props.page.on('data.field', this.init);
+        this.props.page.on('data.group', this.init);
+        this.props.page.on('data.filter', this.init);
         this.props.page.on('data.backlog', this.scheduleUpdate);
-        this.props.page.on('do.user.where', this.init);
-        this.props.page.on('do.data.filter', this.init);
       }
 
       /**
@@ -174,9 +174,9 @@
         // where
         this.props.page.removeListener('data.model', this.init);
         this.props.page.removeListener('data.field', this.init);
+        this.props.page.removeListener('data.group', this.init);
+        this.props.page.removeListener('data.filter', this.init);
         this.props.page.removeListener('data.backlog', this.scheduleUpdate);
-        this.props.page.removeListener('do.user.where', this.init);
-        this.props.page.removeListener('do.data.filter', this.init);
       }
 
       /**
