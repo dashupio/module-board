@@ -14,7 +14,7 @@
     </div>
 
     <div class={ `card-body py-1 px-2${hasTags() ? ' pt-2' : ''}` }>
-      <hbs template={ props.page.get('data.display') || '' } data={ props.item ? props.item.get() : {} } />
+      <hbs template={ props.page.get('data.display') || '' } data={ props.item ? props.item.toJSON() : {} } />
     </div>
 
     <div class="card-footer tags p-2 pt-1 dropdown">
