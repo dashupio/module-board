@@ -14,13 +14,13 @@
     </a>
 
     <!-- LOADING -->
-    <div if={ props.page.get('data.group') && !state.columns } class="text-center my-5 py-5">
+    <div if={ props.page.get('data.group') && !state.items } class="text-center my-5 py-5">
       <i class="fa fa-spin fa-spinner h1" />
     </div>
     <!-- / LOADING -->
 
     <!-- BOARD -->
-    <div class="view-columns flex-1" if={ props.page.get('data.group') && state.columns }>
+    <div class="view-columns flex-1" if={ props.page.get('data.group') && state.items }>
       <!-- BACKLOG -->
       <div data-column="backlog" if={ !props.page.get('data.backlog.disabled') }>
         <div class="column-header">
@@ -30,7 +30,7 @@
           <div class="column-body-inner">
             <div class="card">
               <div class="card-body task-container" data-id="backlog" if={ !loading('backlog') }>
-                <div each={ (item, i) in getItems({ value : 'backlog' }) } is="page-board-task" data-id={ item.get('_id') } if={ !item.get(`${state.columns.name || state.columns.uuid}.0`) || item.get(`${state.columns.name || state.columns.uuid}.0`) === 'backlog' } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id="backlog" if={ loading('backlog') }>
                 <i class="fa fa-spinner fa-spin" />
@@ -42,18 +42,17 @@
       <!-- / BACKLOG -->
 
       <!-- COLUMNS -->
-      <div each={ (column, i) in state.columns.options } data-column={ column.value }>
+      <div each={ (column, i) in getColumns() } data-column={ column && column.id ? column.id : column }>
         <div class="column-header">
-          <i if={ !column.label }>N/A</i>
-          { column.label }
+          <div is={ getField(getField()).view ? `${getField(getField()).view}-field` : `field-${getField().type}-view` } view="view" field={ getField() } value={ [column] } { ...(getProps()) } />
         </div>
         <div class="column-body">
           <div class="column-body-inner">
             <div class="card">
-              <div class="card-body task-container" data-id={ column.value } if={ !loading(column.value) }>
-                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } if={ item.get(`${state.columns.name || state.columns.uuid}.0`) === column.value } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+              <div class="card-body task-container" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
+                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
               </div>
-              <div class="card-body task-container text-center" data-id={ column.value } if={ loading(column.value) }>
+              <div class="card-body task-container text-center" data-id={ column && column.id ? column.id : column } if={ loading(column) }>
                 <i class="fa fa-spinner fa-spin" />
               </div>
             </div>
@@ -355,18 +354,26 @@
        * @param {String} col
        */
       getItems(col) {
+        // get column field
+        const field = this.getField();
+
         // check frontend
         if (typeof window === 'undefined') return [];
-        if (!this.state.columns) return [];
+        if (!field) return [];
 
         // return queries
         return (this.state.items || []).filter((row) => {
           // value
-          const value = row.get(`${this.state.columns.name || this.state.columns.uuid}.0`);
+          let val = row.get(`${field.name || field.uuid}`);
+
+          // backlog
+          if ((!val || !val.length) && col === 'backlog') return true;
+
+          // val
+          if (!Array.isArray(val)) val = [val];
 
           // check col
-          if (value === col.value) return true;
-          if ((!value || value === 'backlog') && col.value === 'backlog') return true;
+          return !!val.find((v) => JSON.stringify(col) === JSON.stringify(v));
         }).sort((a, b) => {
           // sort order
           const aC = a.get(`_meta.${this.props.page.get('_id')}.order`) || 0;
@@ -377,6 +384,104 @@
           if (bC < aC) return 1;
           return 0;
         });
+      }
+
+      /**
+       * get columns
+       */
+      getField() {
+        // get column field
+        const fields = this.props.context.fields || [];
+        return fields.find((f) => f.uuid === this.props.page.get('data.group'));
+      }
+
+      /**
+       * get columns
+       */
+      getActualField() {
+        // get column field
+        return this.props.fields.find((f) => f.type === field.type);
+      }
+
+      /**
+       * get columns
+       */
+      getColumns() {
+        // get column field
+        const field = this.getField();
+
+        // return noting
+        if (!field) return [];
+
+        // check if options
+        if (field.options) {
+          // options
+          return field.options.map((item) => item.value);
+        }
+
+        // check if user
+        if (field.type === 'user') {
+          // check loading
+          if (!this.loadingMembers && !this.members) {
+            // loading
+            this.loadingMembers = true;
+            
+            // data
+            eden.router.get(`/app/${this.props.dashup.get('_id')}/member/query`).then((data) => {
+              // check loading
+              this.loadingMembers = false;
+
+              // set members
+              this.members = data.map((item) => item.data);
+              this.update();
+            });
+          }
+
+          // check loading
+          if (this.loadingMembers) return [];
+        }
+
+        // return values
+        let data = (this.state.items || []).reduce((accum, item) => {
+          // check val
+          let vals = item.get(field.name || field.uuid);
+
+          // check val
+          if (!vals) return accum;
+
+          // array
+          if (!Array.isArray(vals)) vals = [vals];
+
+          // vals
+          vals.forEach((val) => {
+            // sanitised
+            const sanitised = val && val.toJSON ? val.toJSON() : val;
+
+            // return value
+            if (!accum.find((a) => JSON.stringify(a) === JSON.stringify(sanitised))) {
+              // push sanitised
+              accum.push(sanitised);
+            }
+          });
+
+          // return accum
+          return accum;
+        }, []);
+
+        // check type
+        if (field.type === 'user' && this.members) {
+          // vals
+          this.members.forEach((val) => {
+            // return value
+            if (!data.find((a) => JSON.stringify(a) === JSON.stringify(val))) {
+              // push sanitised
+              data.push(val);
+            }
+          });
+        }
+
+        // return data
+        return data;
       }
 
 
@@ -457,7 +562,6 @@
         this.update({
           items,
           fields,
-          columns,
         });
 
         // safe update
@@ -650,9 +754,10 @@
       /**
        * check visible
        */
-      isVisible(task) {
+      isVisible(task, column) {
         // tags
         const tags = this.props.search && this.props.search.length ? this.props.search.toLowerCase().split(' ') : [];
+        const field = this.getField();
 
         // check filter
         if (this.isFilter('me', true)) {
@@ -713,6 +818,19 @@
             return !searchable.includes(tag);
           })) return false;
         }
+
+        // check val
+        let val = task.get(field.name || field.uuid);
+
+        // backlog
+        if (!val && column) return false;
+        if (!val && !column) return true;
+        
+        // check array
+        if (!Array.isArray(val)) val = [val];
+
+        // check value
+        if (!val.find((v) => JSON.stringify(v) === JSON.stringify(column))) return false;
 
         // return true
         return true;
