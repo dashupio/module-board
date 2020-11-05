@@ -30,7 +30,7 @@
           <div class="column-body-inner">
             <div class="card">
               <div class="card-body task-container" data-id="backlog" if={ !loading('backlog') }>
-                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id="backlog" if={ loading('backlog') }>
                 <i class="fa fa-spinner fa-spin" />
@@ -50,7 +50,7 @@
           <div class="column-body-inner">
             <div class="card">
               <div class="card-body task-container" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
-                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ state.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id={ column && column.id ? column.id : column } if={ loading(column) }>
                 <i class="fa fa-spinner fa-spin" />
@@ -512,10 +512,6 @@
           this.state.items.removeListener('update', this.scheduleUpdate);
         }
 
-        // get column field
-        const fields = this.props.context.fields;
-        const columns = fields.find((f) => f.uuid === this.props.page.get('data.group'));
-
         // get model
         let items = [];
         const model = this.props.page.get('data.model');
@@ -561,7 +557,6 @@
         // update
         this.update({
           items,
-          fields,
         });
 
         // safe update
@@ -600,6 +595,7 @@
        */
       initSort () {
         // require sort
+        const field = this.getField();
         const Sortable = require('sortablejs');
 
         // sortables
@@ -636,7 +632,7 @@
 
               // set column
               const col    = $(target).attr('data-id') || null;
-              const column = this.state.columns.options.find(c => c.value === col);
+              const column = this.getColumns().find(c => c === col || c.id === col);
               
               // updates
               const updates = [];
@@ -655,11 +651,17 @@
                   return t.get('_id') === $(item).attr('data-id');
                 });
 
+                // val
+                let val = task.get(`${field.name || field.uuid}`);
+
+                // val
+                if (val && !Array.isArray(val)) val = [val];
+
                 // check column fields
-                if ((task.get(`${this.state.columns.name || this.state.columns.uuid}.0`) || 'backlog') !== (col || 'backlog')) {
+                if (!val.find((v) => JSON.stringify(v) !== JSON.stringif(col))) {
                   // push update
                   updates.push(task);
-                  task.set(`${this.state.columns.name || this.state.columns.uuid}`, [(col || 'backlog')]);
+                  task.set(`${field.name || field.uuid}`, col);
                 }
 
                 // check order
@@ -762,7 +764,7 @@
         // check filter
         if (this.isFilter('me', true)) {
           // check vals
-          const userFields = [...(this.state.fields)].filter((f) => (this.props.page.get('data.user') || []).includes(f.uuid));
+          const userFields = [...(this.props.context.fields)].filter((f) => (this.props.page.get('data.user') || []).includes(f.uuid));
 
           // get vals
           let vals = userFields.reduce((accum, userField) => {
@@ -786,7 +788,7 @@
         // check tags
         if ((this.props.page.get('user.filter.tags') || []).length) {
           // check vals
-          const tagFields = [...(this.state.fields)].filter((f) => (this.props.page.get('data.tag') || []).includes(f.uuid));
+          const tagFields = [...(this.props.context.fields)].filter((f) => (this.props.page.get('data.tag') || []).includes(f.uuid));
 
           // check filter
           if (this.props.page.get('user.filter.tags').find((tag) => {
@@ -823,8 +825,8 @@
         let val = task.get(field.name || field.uuid);
 
         // backlog
+        if ((!val || !val.length) && !column) return true;
         if (!val && column) return false;
-        if (!val && !column) return true;
         
         // check array
         if (!Array.isArray(val)) val = [val];

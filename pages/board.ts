@@ -57,7 +57,7 @@ export default class BoardPage extends Struct {
    */
   get categories() {
     // return array of categories
-    return ['frontend'];
+    return ['View'];
   }
 
   /**
@@ -65,6 +65,6 @@ export default class BoardPage extends Struct {
    */
   get description() {
     // return description string
-    return 'Kanban board view';
+    return 'Board view page';
   }
 }
