@@ -658,7 +658,7 @@
                 if (val && !Array.isArray(val)) val = [val];
 
                 // check column fields
-                if (!val.find((v) => JSON.stringify(v) !== JSON.stringif(col))) {
+                if (!val.find((v) => JSON.stringify(v) === JSON.stringify(col))) {
                   // push update
                   updates.push(task);
                   task.set(`${field.name || field.uuid}`, col);
