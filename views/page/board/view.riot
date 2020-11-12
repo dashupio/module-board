@@ -168,6 +168,7 @@
         if (this.state.items && this.state.items.removeListener) {
           // safe update
           this.state.items.removeListener('update', this.scheduleUpdate);
+          this.state.items.deafen();
         }
 
         // where
@@ -510,6 +511,7 @@
         if (this.state.items && this.state.items.removeListener) {
           // safe update
           this.state.items.removeListener('update', this.scheduleUpdate);
+          this.state.items.deafen();
         }
 
         // get model
