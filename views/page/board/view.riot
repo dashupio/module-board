@@ -137,6 +137,7 @@
         this.init();
 
         // where
+        this.props.page.on('do.sort', this.init);
         this.props.page.on('data.model', this.init);
         this.props.page.on('data.field', this.init);
         this.props.page.on('data.group', this.init);
@@ -172,6 +173,7 @@
         }
 
         // where
+        this.props.page.removeListener('do.sort', this.init);
         this.props.page.removeListener('data.model', this.init);
         this.props.page.removeListener('data.field', this.init);
         this.props.page.removeListener('data.group', this.init);
@@ -356,6 +358,7 @@
        */
       getItems(col) {
         // get column field
+        const sort  = this.getSort();
         const field = this.getField();
 
         // check frontend
@@ -377,14 +380,45 @@
           return !!val.find((v) => JSON.stringify(col) === JSON.stringify(v));
         }).sort((a, b) => {
           // sort order
-          const aC = a.get(`_meta.${this.props.page.get('_id')}.order`) || 0;
-          const bC = b.get(`_meta.${this.props.page.get('_id')}.order`) || 0;
+          let aC = a.get(sort ? (sort.name || sort.uuid) : `_meta.${this.props.page.get('_id')}.order`) || 0;
+          let bC = b.get(sort ? (sort.name || sort.uuid) : `_meta.${this.props.page.get('_id')}.order`) || 0;
+
+          // check object
+          if (aC && typeof aC === 'object' && !(aC instanceof Date)) aC = JSON.stringify(aC);
+          if (bC && typeof bC === 'object' && !(bC instanceof Date)) bC = JSON.stringify(bC);
+
+          // check string
+          if (typeof aC === 'string' && typeof bC === 'string') {
+            // sort way
+            if (this.props.page.get('data.sort.way') === -1) {
+              // comnpare desc
+              return bC.toLowerCase().localeCompare(aC.toLowerCase());
+            }
+
+            // compare asc
+            return aC.toLowerCase().localeCompare(bC.toLowerCase());
+          }
+
+          // sort number
+          if (this.props.page.get('data.sort.way') === -1) {
+            if (bC > aC) return 1;
+            if (bC < aC) return -1;
+          }
 
           // check order
           if (bC > aC) return -1;
           if (bC < aC) return 1;
           return 0;
         });
+      }
+
+      /**
+       * get columns
+       */
+      getSort() {
+        // get column field
+        const fields = this.props.context.fields || [];
+        return fields.find((f) => f.uuid === this.props.page.get('data.sort.id'));
       }
 
       /**
