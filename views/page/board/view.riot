@@ -23,12 +23,12 @@
     <div class="view-columns flex-1" if={ props.page.get('data.group') && state.items }>
       <!-- BACKLOG -->
       <div data-column="backlog" if={ !props.page.get('data.backlog.disabled') }>
-        <div class="column-header px-1">
+        <div class="column-header">
           { props.page.get('data.backlog.name') || 'Backlog' }
         </div>
         <div class="column-body">
           <div class="column-body-inner">
-            <div class="card bg-transparent h-100">
+            <div class="card bg-transparent h-100 mx--1">
               <div class="task-container h-100 px-1" data-id="backlog" if={ !loading('backlog') }>
                 <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
@@ -48,8 +48,8 @@
         </div>
         <div class="column-body">
           <div class="column-body-inner">
-            <div class="card bg-transparent h-100 px-1">
-              <div class="task-container h-100" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
+            <div class="card bg-transparent h-100 mx--1">
+              <div class="task-container h-100 px-1" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
                 <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id={ column && column.id ? column.id : column } if={ loading(column) }>
