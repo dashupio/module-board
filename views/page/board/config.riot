@@ -399,7 +399,7 @@
        */
       getUser() {
         // return value
-        return [...(this.props.context.fields)].filter((field) => field.type === 'user').map((field) => {
+        return [...(this.props.context.fields)].filter((field) => ['user'].includes(field.type)).map((field) => {
           // return fields
           return {
             name     : field.label || field.name,

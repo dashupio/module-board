@@ -23,14 +23,14 @@
     <div class="view-columns flex-1" if={ props.page.get('data.group') && state.items }>
       <!-- BACKLOG -->
       <div data-column="backlog" if={ !props.page.get('data.backlog.disabled') }>
-        <div class="column-header">
+        <div class="column-header px-1">
           { props.page.get('data.backlog.name') || 'Backlog' }
         </div>
         <div class="column-body">
           <div class="column-body-inner">
-            <div class="card">
-              <div class="card-body task-container" data-id="backlog" if={ !loading('backlog') }>
-                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+            <div class="card bg-transparent h-100">
+              <div class="task-container h-100 px-1" data-id="backlog" if={ !loading('backlog') }>
+                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id="backlog" if={ loading('backlog') }>
                 <i class="fa fa-spinner fa-spin" />
@@ -43,14 +43,14 @@
 
       <!-- COLUMNS -->
       <div each={ (column, i) in getColumns() } data-column={ column && column.id ? column.id : column }>
-        <div class="column-header">
+        <div class="column-header px-1">
           <div is={ getField(getField()).view ? `${getField(getField()).view}-field` : `field-${getField().type}-view` } view="view" field={ getField() } value={ [column] } { ...(getProps()) } />
         </div>
         <div class="column-body">
           <div class="column-body-inner">
-            <div class="card">
-              <div class="card-body task-container" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
-                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } add-user={ onAddUser } add-tag={ onAddTag } { ...getProps() } />
+            <div class="card bg-transparent h-100 px-1">
+              <div class="task-container h-100" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
+                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id={ column && column.id ? column.id : column } if={ loading(column) }>
                 <i class="fa fa-spinner fa-spin" />
@@ -62,15 +62,6 @@
       <!-- / COLUMNS -->
     </div>
     <!-- / BOARD -->
-
-    <!-- TAGS -->
-    <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'tag' } aria-labelledby={ `tag-${state.model.get('_id')}` } id={ `tag-dd-${state.model.get('_id')}` }>
-      <dashup-tag ref={ ref('model') } { ...props } />
-    </div>
-    <div class="dropdown-menu show m-0 p-0" if={ state.model && state.menu === 'user' } aria-labelledby={ `user-${state.model.get('_id')}` } id={ `user-dd-${state.model.get('_id')}` }>
-      <dashup-user ref={ ref('model') } { ...props } />
-    </div>
-    <!-- / TAGS -->
   </div>
 
   <script>
@@ -106,10 +97,6 @@
        * on before mount
        */
       onBeforeMount(...args) {
-        // bind
-        this.onAddTag  = this.onAddTag.bind(this);
-        this.onAddUser = this.onAddUser.bind(this);
-
         // bind
         this.init     = this.init.bind(this);
         this.initSort = this.initSort.bind(this);
@@ -233,103 +220,9 @@
 
       // ////////////////////////////////////////////////////////////////////////////
       //
-      // EVENT METHODS
+      // GET METHODS
       //
       // ////////////////////////////////////////////////////////////////////////////
-
-      /**
-       * on submit
-       *
-       * @param {Event} e
-       */
-      onAddTag(e, model) {
-        // close popped
-        if (this.closePopped) this.closePopped();
-
-        // submit form
-        this.update({
-          menu : 'tag',
-          model,
-        });
-
-        // create popped
-        this.popped = new Popper(this.$(`#tag-${model.get('_id')}`), this.$(`#tag-dd-${model.get('_id')}`), {
-          placement : 'left-start'
-        });
-
-        // container
-        const container = $(this.$(`#tag-dd-${model.get('_id')}`));
-
-        // create close popped
-        const closePopped = (e) => {
-          // reset
-          this.closePopped = null;
-
-          // check
-          if (!container.is(e.target) && container.has(e.target).length === 0) {
-            // close
-            this.popped = null;
-            this.update({
-              menu  : null,
-              model : null,
-            });
-
-            // remove listener
-            $(document).off('mouseup', closePopped);
-          }
-        };
-        this.closePopped = closePopped;
-
-        // add listener
-        $(document).on('mouseup', closePopped);
-      }
-
-      /**
-       * on submit
-       *
-       * @param {Event} e
-       */
-      onAddUser(e, model) {
-        // close popped
-        if (this.closePopped) this.closePopped();
-
-        // submit form
-        this.update({
-          menu : 'user',
-          model,
-        });
-
-        // create popped
-        this.popped = new Popper(this.$(`#user-${model.get('_id')}`), this.$(`#user-dd-${model.get('_id')}`), {
-          placement : 'left-start'
-        });
-
-        // container
-        const container = $(this.$(`#user-dd-${model.get('_id')}`));
-
-        // create close popped
-        const closePopped = (e) => {
-          // reset
-          this.closePopped = null;
-
-          // check
-          if (!container.is(e.target) && container.has(e.target).length === 0) {
-            // close
-            this.popped = null;
-            this.update({
-              menu  : null,
-              model : null,
-            });
-
-            // remove listener
-            $(document).off('mouseup', closePopped);
-          }
-        };
-        this.closePopped = closePopped;
-
-        // add listener
-        $(document).on('mouseup', closePopped);
-      }
 
       /**
        * get props
@@ -803,16 +696,19 @@
           const userFields = [...(this.props.context.fields)].filter((f) => (this.props.page.get('data.user') || []).includes(f.uuid));
 
           // get vals
-          let vals = userFields.reduce((accum, userField) => {
-            // push to accum
-            accum.push(...(task.get(userField ? userField.name || userField.uuid : 'null') || []));
+          const vals = userFields.reduce((accum, userField) => {
+            // val
+            let val = task.get(userField ? userField.name || userField.uuid : 'null') || [];
+
+            // vals
+            if (val && !Array.isArray(val)) val = [val];
+
+            // push
+            accum.push(...val);
 
             // return accum
             return accum;
           }, []);
-
-          // vals
-          if (vals && !Array.isArray(vals)) vals = [vals];
 
           // only me
           if (!vals.find((val) => {
@@ -829,19 +725,22 @@
           // check filter
           if (this.props.page.get('user.filter.tags').find((tag) => {
             // check tag exists on task
-            let val = tagFields.reduce((accum, tagField) => {
+            const vals = tagFields.reduce((accum, tagField) => {
+              // val
+              let val = task.get(tagField ? tagField.name || tagField.uuid : 'null') || [];
+
+              // vals
+              if (val && !Array.isArray(val)) val = [val];
+
               // push
-              accum.push(...(task.get(tagField ? tagField.name || tagField.uuid : 'null') || []));
+              accum.push(...val);
 
               // return accum
               return accum;
             }, []);
 
-            // set value
-            if (typeof val === 'string') val = [val];
-
             // check tag
-            return !val.includes(tag);
+            return !vals.includes(tag);
           })) return false;
         }
 
