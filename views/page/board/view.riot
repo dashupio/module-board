@@ -28,7 +28,7 @@
         </div>
         <div class="column-body">
           <div class="column-body-inner">
-            <div class="card bg-transparent h-100 mx--1">
+            <div class="h-100 mx--1">
               <div class="task-container h-100 px-1" data-id="backlog" if={ !loading('backlog') }>
                 <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
@@ -48,7 +48,7 @@
         </div>
         <div class="column-body">
           <div class="column-body-inner">
-            <div class="card bg-transparent h-100 mx--1">
+            <div class="h-100 mx--1">
               <div class="task-container h-100 px-1" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
                 <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
