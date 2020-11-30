@@ -105,6 +105,14 @@
         this.scrolls = new Map();
 
         // set force update
+        this.scheduleItem = (item) => {
+          // check found
+          const found = this.state.items.find((i) => i.get('_id') === item.get('_id'));
+
+          // push
+          if (!found) this.state.items.push(item);
+          this.scheduleUpdate();
+        };
         this.scheduleUpdate = () => {
           // update
           this.update();
@@ -130,6 +138,9 @@
         this.props.page.on('data.group', this.init);
         this.props.page.on('data.filter', this.init);
         this.props.page.on('data.backlog', this.scheduleUpdate);
+
+        // on item
+        this.props.page.on('item', this.scheduleItem);
       }
 
       /**
@@ -166,6 +177,9 @@
         this.props.page.removeListener('data.group', this.init);
         this.props.page.removeListener('data.filter', this.init);
         this.props.page.removeListener('data.backlog', this.scheduleUpdate);
+
+        // on item
+        this.props.page.removeListener('item', this.scheduleItem);
       }
 
       /**
