@@ -61,12 +61,11 @@
         };
 
         // on update
-        this.props.item.on('update', this.safeUpdated);
-        this.props.page.on('data.display', this.safeUpdated);
-
-        // socket
-        eden.socket.on(`chat.${this.props.item.get('_id')}.count`, this.onCount);
-        eden.socket.call('chat.count', this.props.item.get('_id')).then(this.onCount);
+        this.props.dashup.action({
+          type   : 'page',
+          struct : 'channel',
+        }, 'count', this.props.item.get('_id')).then(this.onCount);
+        this.props.dashup.socket.on(`count.${this.props.item.get('_id')}`, this.onCount);
       }
 
       /**
@@ -88,12 +87,13 @@
         if (typeof window === 'undefined') return;
 
         // on update
-        this.props.item.removeListener('update', this.safeUpdated);
-        this.props.page.removeListener('data.display', this.safeUpdated);
+        this.props.dashup.action({
+          type   : 'page',
+          struct : 'channel',
+        }, 'message.unsubscribe', this.props.item.get('_id'));
 
         // off
-        eden.socket.call('chat.count.leave', this.props.item.get('_id'));
-        eden.socket.off(`chat.${this.props.item.get('_id')}.count`, this.onCount);
+        this.props.dashup.socket.off(`count.${this.props.item.get('_id')}`, this.onCount);
       }
 
       /**
