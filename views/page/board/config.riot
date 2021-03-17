@@ -32,7 +32,7 @@
 
     <div if={ props.page.get('data.forms.0') }>
       <hr />
-        
+
       <div class="mb-3">
         <div class="form-check form-switch">
           <input class="form-check-input" id="is-required" type="checkbox" onchange={ (e) => onBacklog(e) } { ...getProps({ checked : !props.page.get('data.backlog.disabled') }) }>

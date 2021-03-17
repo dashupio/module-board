@@ -1,5 +1,5 @@
 <page-board-filter>
-  <dashup-page-filter sort={ true } tags={ getTags().length ? getTags() : null } fields={ props.context.fields } on-search={ (e) => onSearch(e) } has-user={ props.page.get('data.user') } { ...getProps() } />
+  <dashup-page-filter class="d-flex w-100" sort={ true } tags={ getTags().length ? getTags() : null } on-search={ (e) => onSearch(e) } has-user={ props.page.get('data.user') } { ...getProps() } />
 
   <script>
     // export default
@@ -31,7 +31,8 @@
 
         // delete fields
         delete newProps.is;
-        delete newProps.fields;
+        delete newProps.class;
+        delete newProps.viewclass;
 
         // return new props
         return newProps;

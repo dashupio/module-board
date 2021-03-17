@@ -3,6 +3,7 @@ const { Module } = require('@dashup/module');
 
 // import base
 const BoardPage = require('./pages/board');
+const ListBlock = require('./blocks/list');
 
 /**
  * export module
@@ -23,8 +24,11 @@ class BoardModule extends Module {
    * @param {*} register 
    */
   register(fn) {
-    // register sms action
+    // register pages
     fn('page', BoardPage);
+
+    // register blocks
+    fn('block', ListBlock);
   }
 }
 
