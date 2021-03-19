@@ -63,7 +63,7 @@
         };
 
         // on item
-        this.props.phone.on('item', this.safeUpdate);
+        if (this.props.phone) this.props.phone.on('item', this.safeUpdate);
         this.props.item.on('update', this.safeUpdate);
 
         // socket
@@ -90,7 +90,7 @@
         if (typeof window === 'undefined') return;
 
         // on item
-        this.props.phone.removeListener('item', this.safeUpdate);
+        if (this.props.phone) this.props.phone.removeListener('item', this.safeUpdate);
         this.props.item.removeListener('update', this.safeUpdate);
 
         // off
@@ -110,7 +110,7 @@
         e.stopPropagation();
 
         // on item
-        this.props.onSelect(this.props.item);
+        if (this.props.onSelect) this.props.onSelect(this.props.item);
       }
 
       /**
@@ -118,7 +118,7 @@
        */
       isActive() {
         // return is active
-        return this.props.isSelected(this.props.item);
+        return this.props.isSelected ? this.props.isSelected(this.props.item) : null;
       }
 
       /**

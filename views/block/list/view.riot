@@ -44,11 +44,18 @@
 
         // bind methods
         this.getQuery = this.getQuery.bind(this);
+        this.loadList = this.loadList.bind(this);
 
         // safe update
         this.safeUpdate = () => {
           this.update();
         };
+
+        // add listeners
+        this.props.page.on('do.sort', this.loadList);
+        this.props.page.on('do.filter', this.loadList);
+        this.props.page.on('data.model', this.loadList);
+        this.props.page.on('data.filter', this.loadList);
       }
 
       /**
@@ -64,6 +71,12 @@
           this.state.list.removeListener('update', this.safeUpdate);
           this.state.list.deafen();
         }
+
+        // add listeners
+        this.props.page.removeListener('do.sort', this.loadList);
+        this.props.page.removeListener('do.filter', this.loadList);
+        this.props.page.removeListener('data.model', this.loadList);
+        this.props.page.removeListener('data.filter', this.loadList);
       }
 
       /**
@@ -208,19 +221,19 @@
         }
 
         // load filter
-        let filter = null;
+        let filter = [];
 
         // check page filter
         if (this.props.page.get('data.model') === this.getSelectedModel()) {
           // try/catch
           try {
-            filter = JSON.parse(this.props.page.get('data.filter'));
+            filter.push(...(JSON.parse(this.props.page.get('data.filter'))));
           } catch (e) {}
         }
         
         // try/catch
         try {
-          filter = JSON.parse(this.props.block.filter);
+          filter.push(...(JSON.parse(this.props.block.filter)));
         } catch (e) {}
 
         // add initial where
