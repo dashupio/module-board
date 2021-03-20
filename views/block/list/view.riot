@@ -3,11 +3,21 @@
     <div if={ props.block.name } class={ props.block.background ? ' mb-2' : 'card-header' }>
       <b>{ props.block.name }</b>
     </div>
+    <div if={ state.skip } class={ props.block.background ? ' mb-2' : 'card-header' }>
+      <button class="btn btn-primary w-100" onclick={ (e) => onPrev(e) }>
+        { loading('list') ? 'Loading...' : 'Prev' }
+      </button>
+    </div>
     <div if={ loading('list') } class={ `text-center${props.block.background ? '' : ' card-body'}` }>
       <i class="fa fa-spinner fa-spin" />
     </div>
     <div class={ `oy-scroll flex-column flex-1${props.block.background ? '' : ' card-body'}` }>
       <block-contacts-item if={ !loading('list') } each={ (item, i) in state.list } item={ item } { ...getProps() } />
+    </div>
+    <div if={ hasNext() } class={ props.block.background ? ' mt-2' : 'card-footer' }>
+      <button class="btn btn-primary w-100" onclick={ (e) => onNext(e) }>
+        { loading('list') ? 'Loading...' : 'Next' }
+      </button>
     </div>
   </div>
 
@@ -43,6 +53,9 @@
         this.state.limit = 25;
 
         // bind methods
+        this.onNext = this.onNext.bind(this);
+        this.onPrev = this.onPrev.bind(this);
+        this.hasNext = this.hasNext.bind(this);
         this.getQuery = this.getQuery.bind(this);
         this.loadList = this.loadList.bind(this);
 
@@ -96,6 +109,44 @@
 
         // load list
         this.loadList();
+      }
+
+      /**
+       * on next
+       */
+      onPrev(e) {
+        // prevent default
+        e.preventDefault();
+        e.stopPropagation();
+
+        // next
+        this.state.skip = this.state.skip > 0 ? (this.state.skip - this.state.limit) : 0;
+
+        // load list
+        this.loadList();
+      }
+
+      /**
+       * on next
+       */
+      onNext(e) {
+        // prevent default
+        e.preventDefault();
+        e.stopPropagation();
+
+        // next
+        this.state.skip = this.state.skip + this.state.limit;
+
+        // load list
+        this.loadList();
+      }
+
+      /**
+       * on next
+       */
+      hasNext() {
+        // next
+        return this.state.count > (this.state.skip + this.state.limit);
       }
 
 
