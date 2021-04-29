@@ -141,7 +141,7 @@
         return types.map((type) => {
           // return type
           return (this.props.context.fields || []).find((f) => f.uuid === type);
-        });
+        }).filter((t) => t);
       }
 
       /**
@@ -156,7 +156,7 @@
         return types.map((type) => {
           // return type
           return (this.props.context.fields || []).find((f) => f.uuid === type);
-        });
+        }).filter((t) => t);
       }
 
       /**

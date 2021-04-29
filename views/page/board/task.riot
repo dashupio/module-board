@@ -18,12 +18,12 @@
     </div>
 
     <div class="card-footer tags p-2 pt-1 dropdown">
-      <template each={ (type, a) in getUserTypes() }>
-        <button if={ hasUser() } each={ (user, i) in getUsers(type) } class="btn btn-sm btn-circle mr-1" style={ getAvatar(user) ? `background-image:url(${getAvatar(user)})` : null } data-toggle="tooltip" title={ user.name } onclick={ (e) => props.addUser(e, props.item, type) }>
+      <template if={ hasUser() } each={ (type, a) in getUserTypes() }>
+        <button each={ (user, i) in getUsers(type) } class="btn btn-sm btn-circle mr-1" style={ getAvatar(user) ? `background-image:url(${getAvatar(user)})` : null } data-toggle="tooltip" title={ user.name } onclick={ (e) => props.addUser(e, props.item, type) }>
           { getAvatar(user) ? '' : getShortName(user) }
         </button>
 
-        <button if={ hasUser() } class="btn btn-sm btn-outline-primary btn-circle" id={ `user-${props.item.get('_id')}` } onclick={ (e) => props.addUser(e, props.item, type) } data-toggle="tooltip" title={ type.label }>
+        <button class="btn btn-sm btn-outline-primary btn-circle" id={ `user-${props.item.get('_id')}` } onclick={ (e) => props.addUser(e, props.item, type) } data-toggle="tooltip" title={ type.label }>
           <i class="fa fa-plus" />
         </button>
       </template>
@@ -126,8 +126,8 @@
         // return fields
         return types.map((type) => {
           // return type
-          return (this.props.formFields || []).find((f) => f.uuid === type);
-        });
+          return (this.props.context.fields || []).find((f) => f.uuid === type);
+        }).filter((f) => f);
       }
 
       /**
@@ -141,8 +141,8 @@
         // return fields
         return types.map((type) => {
           // return type
-          return (this.props.formFields || []).find((f) => f.uuid === type);
-        });
+          return (this.props.context.fields || []).find((f) => f.uuid === type);
+        }).filter((f) => f);
       }
 
       /**

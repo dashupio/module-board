@@ -95,6 +95,23 @@
       /**
        * on mounted
        */
+      onUpdated() {
+        // check frontend
+        if (typeof window === 'undefined') return;
+        
+        // fix column sizing
+        if (this.search !== this.props.search) {
+          // set search
+          this.search = this.props.search;
+
+          // load list
+          this.loadList();
+        }
+      }
+
+      /**
+       * on mounted
+       */
       onMounted() {
         // check frontend
         if (typeof window === 'undefined') return;

@@ -30,7 +30,7 @@
           <div class="column-body-inner">
             <div class="h-100 mx--1">
               <div class="task-container h-100 w-100 px-1" data-id="backlog" if={ !loading('backlog') }>
-                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
+                <div each={ (item, i) in getItems('backlog') } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item) ? '' : 'd-none'}` } item={ item } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id="backlog" if={ loading('backlog') }>
                 <i class="fa fa-spinner fa-spin" />
@@ -50,7 +50,7 @@
           <div class="column-body-inner">
             <div class="h-100 mx--1">
               <div class="task-container h-100 w-100 px-1" data-id={ column && column.id ? column.id : column } if={ !loading(column) }>
-                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } form-fields={ props.context.fields } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
+                <div each={ (item, i) in getItems(column) } is="page-board-task" data-id={ item.get('_id') } class={ `${isVisible(item, column) ? '' : 'd-none'}` } item={ item } on-item={ (e) => props.onItem(e, item) } { ...getProps() } />
               </div>
               <div class="card-body task-container text-center" data-id={ column && column.id ? column.id : column } if={ loading(column) }>
                 <i class="fa fa-spinner fa-spin" />
