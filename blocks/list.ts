@@ -28,7 +28,7 @@ export default class ListBlock extends Struct {
    */
   get title() {
     // return page type label
-    return 'List Block';
+    return 'List';
   }
 
   /**
@@ -45,7 +45,7 @@ export default class ListBlock extends Struct {
   get views() {
     // return object of views
     return {
-      view   : 'block/list/view',
+      view   : 'block/list',
       config : 'block/list/config',
     };
   }

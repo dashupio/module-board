@@ -45,10 +45,8 @@ export default class BoardPage extends Struct {
   get views() {
     // return object of views
     return {
-      view   : 'page/board/view',
-      menu   : 'page/board/menu',
+      view   : 'page/board',
       config : 'page/board/config',
-      filter : 'page/board/filter',
     };
   }
 
