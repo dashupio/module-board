@@ -1,8 +1,7 @@
 
 // import react
 import React from 'react';
-import Select from 'react-select';
-import { View, Query } from '@dashup/ui';
+import { View, Query, Select } from '@dashup/ui';
 
 // create page model config
 const PageBoardConfig = (props = {}) => {
@@ -193,7 +192,16 @@ const PageBoardConfig = (props = {}) => {
             <label className="form-label">
               Filter By
             </label>
-            <Query dashup={ props.dashup } onChange={ console.log } />
+            <Query
+              isString
+
+              page={ props.page }
+              query={ props.page.get('data.filter') }
+              dashup={ props.dashup }
+              fields={ props.getFields() }
+              onChange={ (val) => props.setData('filter', val) }
+              getFieldStruct={ props.getFieldStruct }
+              />
           </div>
         </>
       ) }

@@ -14,6 +14,7 @@ const PageBoard = (props = {}) => {
   const [groups, setGroups] = useState([]);
   const [config, setConfig] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [updated, setUpdated] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
   // required
@@ -104,6 +105,27 @@ const PageBoard = (props = {}) => {
     };
   };
 
+  // set tag
+  const setTag = async (field, value) => {
+    // set tag
+    let tags = (props.page.get('user.filter.tags') || []).filter((t) => typeof t === 'object');
+
+    // check tag
+    if (tags.find((t) => t.field === field.uuid && t.value === (value?.value || value))) {
+      // exists
+      tags = tags.filter((t) => t.field !== field.uuid || t.value !== (value?.value || value));
+    } else {
+      // push tag
+      tags.push({
+        field : field.uuid,
+        value : (value?.value || value),
+      });
+    }
+
+    // set data
+    await props.setUser('filter.tags', tags);
+  };
+
   // set sort
   const setSort = async (column, way) => {
     // let sort
@@ -123,14 +145,20 @@ const PageBoard = (props = {}) => {
       };
     }
 
-    // set loading
-    setLoading(true);
-
     // set data
     await props.setData('sort', sort);
+  };
 
-    // set loading
-    setLoading(false);
+  // set search
+  const setSearch = (search = '') => {
+    // set page data
+    props.page.set('user.search', search.length ? search : null);
+  };
+
+  // set filter
+  const setFilter = async (filter) => {
+    // set data
+    props.setUser('query', filter, true);
   };
 
   // get items
@@ -289,16 +317,46 @@ const PageBoard = (props = {}) => {
     setLoading(false);
 
     // on update
+    const onUpdate = () => {
+      setUpdated(new Date());
+    };
+
+    // add listener
+    props.page.on('data.sort', onUpdate);
+    props.page.on('data.group', onUpdate);
+    props.page.on('data.filter', onUpdate);
+    props.page.on('user.search', onUpdate);
+    props.page.on('user.filter.me', onUpdate);
+    props.page.on('user.filter.tags', onUpdate);
+
+    // on update
     return () => {
       // remove
       listen.deafen();
       listen.removeListener('update', updateItems);
+
+      // remove listener
+      props.page.removeListener('data.sort', onUpdate);
+      props.page.removeListener('data.group', onUpdate);
+      props.page.removeListener('data.filter', onUpdate);
+      props.page.removeListener('user.search', onUpdate);
+      props.page.removeListener('user.filter.me', onUpdate);
+      props.page.removeListener('user.filter.tags', onUpdate);
     };
-  }, [props.page.get('_id'), props.page.get('data.group'), props.page.get('data.model'), props.page.get('data.form')]);
+  }, [
+    props.page.get('_id'),
+    props.page.get('type'),
+    props.page.get('data.sort'),
+    props.page.get('data.group'),
+    props.page.get('data.filter'),
+    props.page.get('user.search'),
+    props.page.get('user.filter.me'),
+    props.page.get('user.filter.tags'),
+  ]);
 
   // return jsx
   return (
-    <Page { ...props } loading={ loading } require={ required } bodyClass="flex-column">
+    <Page { ...props } require={ required } bodyClass="flex-column">
 
       <Page.Config show={ config } onHide={ (e) => setConfig(false) } />
 
@@ -327,7 +385,7 @@ const PageBoard = (props = {}) => {
           ) }
         </>
       </Page.Menu>
-      SUB MENU
+      <Page.Filter onSearch={ setSearch } onSort={ setSort } onTag={ setTag } onFilter={ setFilter } isString />
       { !required.find((r) => !props.page.get(r.key)) && groups.length && (
         <Page.Body>
           <PerfectScrollbar className="view-columns flex-1">

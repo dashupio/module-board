@@ -1,8 +1,7 @@
 
 // import react
 import React from 'react';
-import Select from 'react-select';
-import { Query, View } from '@dashup/ui';
+import { Query, View, Select } from '@dashup/ui';
 
 // block list
 const BlockListConfig = (props = {}) => {
@@ -124,7 +123,16 @@ const BlockListConfig = (props = {}) => {
             <label className="form-label">
               Filter By
             </label>
-            <Query dashup={ props.dashup } onChange={ console.log } />
+            <Query
+              isString
+
+              page={ props.page }
+              query={ props.block.filter }
+              dashup={ props.dashup }
+              fields={ props.getFields() }
+              onChange={ (val) => props.setData('filter', val) }
+              getFieldStruct={ props.getFieldStruct }
+              />
           </div>
         </>
       ) }
