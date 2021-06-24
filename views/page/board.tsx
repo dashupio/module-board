@@ -10,6 +10,8 @@ import React, { useState, useEffect } from 'react';
 // create board page
 const PageBoard = (props = {}) => {
   // groups
+  const [form, setForm] = useState(null);
+  const [share, setShare] = useState(false);
   const [items, setItems] = useState([]);
   const [groups, setGroups] = useState([]);
   const [config, setConfig] = useState(false);
@@ -127,9 +129,23 @@ const PageBoard = (props = {}) => {
   };
 
   // set sort
-  const setSort = async (column, way) => {
+  const setSort = async (column, way = 1) => {
     // let sort
     let sort;
+
+    // check field
+    if (
+      column && props.page.get('data.sort') &&
+      (column.field !== 'custom' && column.field === props.page.get('data.sort.field')) ||
+      (column.field === 'custom' && column.sort === props.page.get('data.sort.sort'))
+    ) {
+      // reverse sort
+      if (props.page.get('data.sort.way') === -1) {
+        column = null;
+      } else {
+        way = -1;
+      }
+    }
     
     // set sort
     if (!column) {
@@ -358,9 +374,11 @@ const PageBoard = (props = {}) => {
   return (
     <Page { ...props } require={ required } bodyClass="flex-column">
 
+      <Page.Share show={ share } onHide={ (e) => setShare(false) } />
+      { !!props.item && <Page.Item show item={ props.item } form={ form } setItem={ props.setItem } onHide={ (e) => props.setItem(null) } /> }
       <Page.Config show={ config } onHide={ (e) => setConfig(false) } />
 
-      <Page.Menu onConfig={ () => setConfig(true) } onShare>
+      <Page.Menu onConfig={ () => setConfig(true) } presence={ props.presence } onShare={ () => setShare(true) }>
         <>
           { props.dashup.can(props.page, 'submit') && !!props.getForms().length && (
             <Dropdown>
@@ -374,7 +392,7 @@ const PageBoard = (props = {}) => {
 
                   // return jsx
                   return (
-                    <Dropdown.Item key={ `create-${form.get('_id')}` } onClick={ (e) => props.setData('limit', 25) }>
+                    <Dropdown.Item key={ `create-${form.get('_id')}` } onClick={ (e) => !setForm(form.get('_id')) && props.setItem(new props.dashup.Model()) }>
                       <i className={ `me-2 fa-${form.get('icon') || 'pencil fas'}` } />
                       { form.get('name') }
                     </Dropdown.Item>
@@ -420,6 +438,7 @@ const PageBoard = (props = {}) => {
                                   page={ props.page }
                                   group={ 'backlog' }
                                   dashup={ props.dashup }
+                                  onClick={ props.setItem }
                                   template={ props.page.get('data.display') }
                                   getField={ props.getField }
                                   />
@@ -467,6 +486,7 @@ const PageBoard = (props = {}) => {
                                     page={ props.page }
                                     group={ group }
                                     dashup={ props.dashup }
+                                    onClick={ props.setItem }
                                     template={ props.page.get('data.display') }
                                     getField={ props.getField }
                                     />

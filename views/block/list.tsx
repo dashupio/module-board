@@ -27,6 +27,8 @@ const BlockList = (props = {}) => {
 
     // get query
     const query = props.getQuery(modelPage);
+
+    console.log('test', query);
     
     // list
     return {
@@ -68,7 +70,7 @@ const BlockList = (props = {}) => {
       items.deafen();
       items.removeListener('update', onUpdate);
     };
-  }, [props.block.model, props.model, skip, limit]);
+  }, [props.block.model, props.model, skip, limit, props.page && props.page.get('data.filter')]);
 
   // return jsx
   return (
