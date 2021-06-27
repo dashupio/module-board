@@ -20,15 +20,16 @@ const BlockList = (props = {}) => {
     const model = props.block.model || props.model;
 
     // check model page
-    if (!model) return null;
+    if (!model) return {};
 
     // get model page
     const modelPage = props.dashup.page(model);
 
+    // check model page
+    if (!modelPage) return {};
+
     // get query
     const query = props.getQuery(modelPage);
-
-    console.log('test', query);
     
     // list
     return {
@@ -51,10 +52,16 @@ const BlockList = (props = {}) => {
     // set loading
     setLoading(true);
 
+    // listening
+    let listening = null;
+
     // load data
-    loadData().then(({ data, total }) => {
+    loadData().then(({ data = [], total = 0 }) => {
       // on update
-      data.on('update', onUpdate);
+      if (data?.on) data.on('update', onUpdate);
+
+      // listening
+      listening = data;
 
       // set data
       setData(data);
@@ -64,13 +71,20 @@ const BlockList = (props = {}) => {
     // return nothing
     return () => {
       // items
-      if (!items.removeListener) return;
+      if (!listening.removeListener) return;
 
       // remove listener
-      items.deafen();
-      items.removeListener('update', onUpdate);
+      listening.deafen();
+      listening.removeListener('update', onUpdate);
     };
-  }, [props.block.model, props.model, skip, limit, props.page && props.page.get('data.filter')]);
+  }, [
+    props.block.model || props.model,
+    skip,
+    limit,
+    JSON.stringify(props.page && props.page.get('data.sort')),
+    JSON.stringify(props.page && props.page.get('user.filter')),
+    JSON.stringify(props.page && props.page.get('data.filter')),
+  ]);
 
   // return jsx
   return (
@@ -99,11 +113,11 @@ const BlockList = (props = {}) => {
             return (
               <Card
                 key={ `block-${props.block.uuid}-${item.get('_id')}` }
-                tag={ [] }
                 item={ item }
-                user={ [] }
                 page={ props.page }
                 dashup={ props.dashup }
+                onItem={ props.onItem }
+                onClick={ props.onClick }
                 template={ props.block.display }
                 getField={ props.getField }
                 />

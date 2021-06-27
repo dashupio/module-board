@@ -11,7 +11,7 @@ const PageBoardConfig = (props = {}) => {
     // get forms
     const models = Array.from(props.dashup.get('pages').values()).filter((page) => {
       // return model pages
-      return page.get('type') === 'model';
+      return page.get('type') === 'model' && !page.get('archived');
     });
 
     // return mapped
@@ -31,7 +31,7 @@ const PageBoardConfig = (props = {}) => {
     // get forms
     const forms = Array.from(props.dashup.get('pages').values()).filter((page) => {
       // return model pages
-      return page.get('type') === 'form' && page.get('data.model') === props.page.get('data.model');
+      return page.get('type') === 'form' && page.get('data.model') === props.page.get('data.model') && !page.get('archived');
     });
 
     // return mapped
@@ -102,18 +102,18 @@ const PageBoardConfig = (props = {}) => {
         </label>
         <Select options={ getModels() } defaultValue={ getModels().filter((f) => f.selected) } onChange={ onModel } isClearable />
         <small>
-          View Dashboards with this grids items.
+          View Board with this model's items.
         </small>
       </div>
 
       { !!props.page.get('data.model') && (
         <div className="mb-3">
           <label className="form-label">
-            Grid Form(s)
+            Board Form(s)
           </label>
           <Select options={ getForms() } defaultValue={ getForms().filter((f) => f.selected) } onChange={ onForms } isMulti />
           <small>
-            The forms that this grid will filter by.
+            The forms that this board will filter by.
           </small>
         </div>
       ) }
