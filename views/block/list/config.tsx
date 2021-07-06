@@ -115,7 +115,7 @@ const BlockListConfig = (props = {}) => {
               struct="code"
               value={ props.block.display }
               dashup={ props.dashup }
-              onChange={ (val) => props.setBlock(props.block, val) }
+              onChange={ (val) => props.setBlock(props.block, 'display', val) }
               />
           </div>
             
@@ -130,7 +130,7 @@ const BlockListConfig = (props = {}) => {
               query={ props.block.filter }
               dashup={ props.dashup }
               fields={ props.getFields() }
-              onChange={ (val) => props.setData('filter', val) }
+              onChange={ (val) => props.setBlock(props.block, 'filter', val) }
               getFieldStruct={ props.getFieldStruct }
               />
           </div>
