@@ -94,45 +94,67 @@ const PageBoard = (props = {}) => {
     return null;
   };
 
+  // get query
+  const getQuery = (group) => {
+    // items
+    let query = props.getQuery();
+
+    // group
+    if (group.value) {
+      // add where
+      query = query.where({
+        [group.key] : group.value,
+      });
+    } else {
+      // or
+      query = query.or({
+        [group.key] : null,
+      }, {
+        [group.key] : 'backlog',
+      });
+    }
+
+    // return query
+    return query;
+  };
+
   // updated
   const onUpdated = () => {
     // set updated
     setUpdated(new Date());
   };
 
+  // updated
+  const onGroup = async (group) => {
+    // set items
+    group.items = [...group.listens].reduce((accum, listen) => {
+      // loop
+      listen.forEach((item) => {
+        // check item
+        if (!accum.find((i) => i.get('_id') === item.get('_id'))) {
+          accum.push(item);
+        }
+      });
+
+      // return accum
+      return accum;
+    }, []);
+  };
+
+  // on group count
+  const onGroupCount = async (group) => {
+    group.total = await getQuery(group.group).count();
+  };
+
   // load data
   const loadData = async (group, skip = 0) => {
-    // get query
-    const getQuery = () => {
-      // items
-      let query = props.getQuery();
-  
-      // group
-      if (group.value) {
-        // add where
-        query = query.where({
-          [group.key] : group.value,
-        });
-      } else {
-        // or
-        query = query.or({
-          [group.key] : null,
-        }, {
-          [group.key] : 'backlog',
-        });
-      }
-
-      // return query
-      return query;
-    };
-
     // result
-    const result = await getQuery().skip(skip).limit(25).listen();
+    const result = await getQuery(group).skip(skip).limit(25).listen();
 
     // return items
     return {
       group,
-      total   : await getQuery().count(),
+      total   : await getQuery(group).count(),
       items   : [...result],
       limit   : 25,
       listens : [result],
@@ -212,8 +234,9 @@ const PageBoard = (props = {}) => {
   // get items
   const sortItems = (items) => {
     // get field
-    const sort  = props.page.get('data.sort') || null;
-    const field = props.getField(props.page.get('data.group'));
+    const sort      = props.page.get('data.sort') || null;
+    const field     = props.getField(props.page.get('data.group'));
+    const sortField = sort?.field && props.getField(sort.field);
 
     // check field
     if (!field || !items) return [];
@@ -221,8 +244,12 @@ const PageBoard = (props = {}) => {
     // return queries
     return (items || []).sort((a, b) => {
       // sort order
-      let aC = a.get(sort ? sort.key : `_meta.${props.page.get('_id')}.order`) || 0;
-      let bC = b.get(sort ? sort.key : `_meta.${props.page.get('_id')}.order`) || 0;
+      let aC = a.get(sortField ? (sortField.name || sortField.uuid) : `_meta.${props.page.get('_id')}.order`) || 0;
+      let bC = b.get(sortField ? (sortField.name || sortField.uuid) : `_meta.${props.page.get('_id')}.order`) || 0;
+
+      // check array
+      if (Array.isArray(aC)) aC = aC[0];
+      if (Array.isArray(bC)) bC = bC[0];
 
       // check object
       if (aC && typeof aC === 'object' && !(aC instanceof Date)) aC = JSON.stringify(aC);
@@ -296,7 +323,7 @@ const PageBoard = (props = {}) => {
     column.listens.push(listens[0]);
 
     // add listener
-    listens[0].on('update', onUpdated);
+    listens[0].on('update', column.onUpdate);
 
     // set groups
     setGroups([...groups]);
@@ -356,7 +383,7 @@ const PageBoard = (props = {}) => {
       let val = childItem.get(`${groupBy.name || groupBy.uuid}`);
 
       // val
-      if (val && !Array.isArray(val)) val = [val];
+      if (!Array.isArray(val)) val = [val].filter((v) => v);
 
       // check column fields
       if (!val.find((v) => JSON.stringify(v) === JSON.stringify(column?.group?.value))) {
@@ -424,16 +451,26 @@ const PageBoard = (props = {}) => {
 
     // create group listens
     const datas = await Promise.all(groups.map((g) => loadData(g)));
-
-    // add listens
-    datas.forEach(({ listens }) => {
-      // add listen
-      if (listens[0]?.on) listens[0].on('update', onUpdated);
-    });
     
     // set groups
     setGroups(datas || []);
     setLoading(false);
+
+    // add listener
+    datas.forEach((data) => {
+      // on update
+      data.onUpdate = () => {
+        // on group
+        onGroup(data).then(onUpdated);
+        onGroupCount(data).then(onUpdated);
+      };
+
+      // listens
+      data.listens.forEach((listen) => {
+        // add individual listener
+        listen.on('update', data.onUpdate);
+      });
+    });
 
     // add listener
     props.page.on('data.sort', onUpdated);
@@ -445,16 +482,15 @@ const PageBoard = (props = {}) => {
 
     // on update
     return () => {
-      // remove
-      datas.forEach(({ listens }) => {
-        // listeners
-        listens.forEach((listen) => {
+      // add listeners
+      datas.forEach((data) => {
+        // loop listens
+        (data.listens || []).forEach((listen) => {
           // check listen
           if (listen?.removeListener) {
             listen.deafen();
-            listen.removeListener('update', onUpdated);
+            listen.removeListener('update', data.onUpdate);
           }
-
         });
       });
 
@@ -520,65 +556,73 @@ const PageBoard = (props = {}) => {
       <Page.Filter onSearch={ setSearch } onSort={ setSort } onTag={ setTag } onFilter={ setFilter } isString />
       { !required.find((r) => !props.page.get(r.key)) && !!groups.length && (
         <Page.Body>
-          <PerfectScrollbar className="view-columns flex-1">
-            { groups.map(({ group, items, total }, i) => {
-              // return jsx
-              return (
-                <div key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' }>
-                  <div className="column-header px-1">
-                    { group.label || props.page.get('data.backlog.name') || 'Backlog'}
-                    <small className="ms-auto">
-                      { (total || 0).toLocaleString() }
-                    </small>
-                  </div>
-                  <div className="column-body">
-                    <div className="column-body-inner">
-                      <div className="h-100 mx--1">
-                        <PerfectScrollbar className="task-container h-100 w-100 px-1" onYReachEnd={ () => onScroll(group) }>
-                          { loading ? (
-                            <div className="w-100 text-center">
-                              <i className="fa fa-spinner fa-spin" />
-                            </div>
-                          ) : (
-                            <ReactSortable
-                              id={ `col-${group?.value || 'backlog'}` }
-                              list={ sortItems(items) }
-                              onEnd={ (e) => onEnd(e, { group }) }
-                              group={ props.page.get('_id') }
-                              setList={ () => {} }
-                              className="grid-column-scroll"
-                            >
-                              { sortItems(items).map((item, i) => {
-                                // return jsx
-                                return (
-                                  <Card
-                                    key={ `${(group && group.id) || group}-item-${item.get('_id')}` }
-                                    item={ item }
-                                    page={ props.page }
-                                    group={ group }
-                                    dashup={ props.dashup }
-                                    onClick={ props.setItem }
-                                    template={ props.page.get('data.display') }
-                                    getField={ props.getField }
-                                    />
-                                );
-                              }) }
-                            </ReactSortable>
-                          ) }
-                          { !!colLoading.includes(group?.value || 'backlog') && (
-                            <div className="w-100 text-center">
-                              <i className="fa fa-spinner fa-spin" />
-                            </div>
-                          ) }
-                        </PerfectScrollbar>
+          { groups && groups.length ? (
+            <PerfectScrollbar className="view-columns flex-1">
+              { groups.map(({ group, items, total }, i) => {
+                // return jsx
+                return (
+                  <div key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' }>
+                    <div className="column-header px-1">
+                      { group.label || props.page.get('data.backlog.name') || 'Backlog'}
+                      <small className="ms-auto">
+                        { (total || 0).toLocaleString() }
+                      </small>
+                    </div>
+                    <div className="column-body">
+                      <div className="column-body-inner">
+                        <div className="h-100 mx--1">
+                          <PerfectScrollbar className="task-container h-100 w-100 px-1" onYReachEnd={ () => onScroll(group) }>
+                            { loading ? (
+                              <div className="w-100 text-center">
+                                <i className="fa fa-spinner fa-spin" />
+                              </div>
+                            ) : (
+                              <ReactSortable
+                                id={ `col-${group?.value || 'backlog'}` }
+                                list={ sortItems(items) }
+                                onEnd={ (e) => onEnd(e, { group }) }
+                                group={ props.page.get('_id') }
+                                setList={ () => {} }
+                                className="grid-column-scroll"
+                              >
+                                { sortItems(items).map((item, i) => {
+                                  // return jsx
+                                  return (
+                                    <Card
+                                      key={ `${(group && group.id) || group}-item-${item.get('_id')}` }
+                                      item={ item }
+                                      page={ props.page }
+                                      group={ group }
+                                      dashup={ props.dashup }
+                                      onClick={ props.setItem }
+                                      template={ props.page.get('data.display') }
+                                      getField={ props.getField }
+                                      />
+                                  );
+                                }) }
+                              </ReactSortable>
+                            ) }
+                            { !!colLoading.includes(group?.value || 'backlog') && (
+                              <div className="w-100 text-center">
+                                <i className="fa fa-spinner fa-spin" />
+                              </div>
+                            ) }
+                          </PerfectScrollbar>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            }) }
+                )
+              }) }
 
-          </PerfectScrollbar>
+            </PerfectScrollbar>
+          ) : (
+            <div className="d-flex flex-1 align-items-center">
+              <div className="w-100 text-center">
+                <i className="h1 fa fa-spinner fa-spin" />
+              </div>
+            </div>
+          ) }
         </Page.Body>
       ) }
     </Page>

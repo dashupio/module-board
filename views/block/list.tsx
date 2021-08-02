@@ -1,7 +1,7 @@
 
 // import react
 import { Card } from '@dashup/ui';
-import ReactPerfectScrollbar from 'react-perfect-scrollbar';
+import SimpleBar from 'simplebar-react';
 import React, { useState, useEffect } from 'react';
 
 // block list
@@ -107,7 +107,7 @@ const BlockList = (props = {}) => {
         </div>
       ) }
       { !loading && (
-        <ReactPerfectScrollbar className={ `flex-column flex-1${props.block.background ? ' card-body' : ''} p-relative` }>
+        <SimpleBar className={ `flex-column flex-1${props.block.background ? ' card-body' : ''} p-relative` }>
           { items.map((item, i) => {
             // return jsx
             return (
@@ -123,7 +123,7 @@ const BlockList = (props = {}) => {
                 />
             );
           }) }
-        </ReactPerfectScrollbar>
+        </SimpleBar>
       ) }
       { (total - skip - limit) > 0 && (
         <div className={ props.block.background ? 'card-footer' : 'mt-2' }>
