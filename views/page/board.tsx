@@ -232,7 +232,7 @@ const PageBoard = (props = {}) => {
   };
 
   // get items
-  const sortItems = (items) => {
+  const sortItems = (group, items) => {
     // get field
     const sort      = props.page.get('data.sort') || null;
     const field     = props.getField(props.page.get('data.group'));
@@ -242,7 +242,19 @@ const PageBoard = (props = {}) => {
     if (!field || !items) return [];
 
     // return queries
-    return (items || []).sort((a, b) => {
+    return (items || []).filter((item) => {
+      // get value
+      let actualValue = item.get(field.name || field.uuid);
+
+      // check value
+      if (!Array.isArray(actualValue)) actualValue = [actualValue].filter((v) => v);
+
+      // check item
+      actualValue = actualValue.map((v) => v._id || v.id || (v.get && v.get('_id')) || v);
+
+      // return value
+      return actualValue.includes(group.value);
+    }).sort((a, b) => {
       // sort order
       let aC = a.get(sortField ? (sortField.name || sortField.uuid) : `_meta.${props.page.get('_id')}.order`) || 0;
       let bC = b.get(sortField ? (sortField.name || sortField.uuid) : `_meta.${props.page.get('_id')}.order`) || 0;
@@ -579,13 +591,13 @@ const PageBoard = (props = {}) => {
                             ) : (
                               <ReactSortable
                                 id={ `col-${group?.value || 'backlog'}` }
-                                list={ sortItems(items) }
+                                list={ sortItems(group, items) }
                                 onEnd={ (e) => onEnd(e, { group }) }
                                 group={ props.page.get('_id') }
                                 setList={ () => {} }
                                 className="grid-column-scroll"
                               >
-                                { sortItems(items).map((item, i) => {
+                                { sortItems(group, items).map((item, i) => {
                                   // return jsx
                                   return (
                                     <Card
