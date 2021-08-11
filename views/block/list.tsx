@@ -107,23 +107,27 @@ const BlockList = (props = {}) => {
         </div>
       ) }
       { !loading && (
-        <SimpleBar className={ `flex-column flex-1${props.block.background ? ' card-body' : ''} p-relative` }>
-          { items.map((item, i) => {
-            // return jsx
-            return (
-              <Card
-                key={ `block-${props.block.uuid}-${item.get('_id')}` }
-                item={ item }
-                page={ props.page }
-                dashup={ props.dashup }
-                onItem={ props.onItem }
-                onClick={ props.onClick }
-                template={ props.block.display }
-                getField={ props.getField }
-                />
-            );
-          }) }
-        </SimpleBar>
+        <div className={ `flex-1${props.block.background ? ' card-body' : ''}` }>
+          <div className="h-100 fit-content">
+            <SimpleBar>
+              { items.map((item, i) => {
+                // return jsx
+                return (
+                  <Card
+                    key={ `block-${props.block.uuid}-${item.get('_id')}` }
+                    item={ item }
+                    page={ props.page }
+                    dashup={ props.dashup }
+                    onItem={ props.onItem }
+                    onClick={ props.onClick }
+                    template={ props.block.display }
+                    getField={ props.getField }
+                    />
+                );
+              }) }
+            </SimpleBar>
+          </div>
+        </div>
       ) }
       { (total - skip - limit) > 0 && (
         <div className={ props.block.background ? 'card-footer' : 'mt-2' }>

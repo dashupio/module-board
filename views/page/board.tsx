@@ -251,6 +251,9 @@ const PageBoard = (props = {}) => {
 
       // check item
       actualValue = actualValue.map((v) => v._id || v.id || (v.get && v.get('_id')) || v);
+      
+      // check group
+      if ((!group || (group?.id || 'backlog') === 'backlog') && !actualValue.length) return true;
 
       // return value
       return actualValue.includes(group.value);
@@ -566,76 +569,73 @@ const PageBoard = (props = {}) => {
         </>
       </Page.Menu>
       <Page.Filter onSearch={ setSearch } onSort={ setSort } onTag={ setTag } onFilter={ setFilter } isString />
-      { !required.find((r) => !props.page.get(r.key)) && !!groups.length && (
+      { !!groups?.length ? (
         <Page.Body>
-          { groups && groups.length ? (
-            <PerfectScrollbar className="view-columns flex-1">
-              { groups.map(({ group, items, total }, i) => {
-                // return jsx
-                return (
-                  <div key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' }>
-                    <div className="column-header px-1">
-                      { group.label || props.page.get('data.backlog.name') || 'Backlog'}
-                      <small className="ms-auto">
-                        { (total || 0).toLocaleString() }
-                      </small>
-                    </div>
-                    <div className="column-body">
-                      <div className="column-body-inner">
-                        <div className="h-100 mx--1">
-                          <PerfectScrollbar className="task-container h-100 w-100 px-1" onYReachEnd={ () => onScroll(group) }>
-                            { loading ? (
-                              <div className="w-100 text-center">
-                                <i className="fa fa-spinner fa-spin" />
-                              </div>
-                            ) : (
-                              <ReactSortable
-                                id={ `col-${group?.value || 'backlog'}` }
-                                list={ sortItems(group, items) }
-                                onEnd={ (e) => onEnd(e, { group }) }
-                                group={ props.page.get('_id') }
-                                setList={ () => {} }
-                                className="grid-column-scroll"
-                              >
-                                { sortItems(group, items).map((item, i) => {
-                                  // return jsx
-                                  return (
-                                    <Card
-                                      key={ `${(group && group.id) || group}-item-${item.get('_id')}` }
-                                      item={ item }
-                                      page={ props.page }
-                                      group={ group }
-                                      dashup={ props.dashup }
-                                      onClick={ props.setItem }
-                                      template={ props.page.get('data.display') }
-                                      getField={ props.getField }
-                                      />
-                                  );
-                                }) }
-                              </ReactSortable>
-                            ) }
-                            { !!colLoading.includes(group?.value || 'backlog') && (
-                              <div className="w-100 text-center">
-                                <i className="fa fa-spinner fa-spin" />
-                              </div>
-                            ) }
-                          </PerfectScrollbar>
-                        </div>
+          <PerfectScrollbar className="view-columns flex-1">
+            { groups.map(({ group, items, total }, i) => {
+              // return jsx
+              return (
+                <div key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' }>
+                  <div className="column-header px-1">
+                    { group.label || props.page.get('data.backlog.name') || 'Backlog'}
+                    <small className="ms-auto">
+                      { (total || 0).toLocaleString() }
+                    </small>
+                  </div>
+                  <div className="column-body">
+                    <div className="column-body-inner">
+                      <div className="h-100 mx--1">
+                        <PerfectScrollbar className="task-container h-100 w-100 px-1" onYReachEnd={ () => onScroll(group) }>
+                          { loading ? (
+                            <div className="w-100 text-center">
+                              <i className="fa fa-spinner fa-spin" />
+                            </div>
+                          ) : (
+                            <ReactSortable
+                              id={ `col-${group?.value || 'backlog'}` }
+                              list={ sortItems(group, items) }
+                              onEnd={ (e) => onEnd(e, { group }) }
+                              group={ props.page.get('_id') }
+                              setList={ () => {} }
+                              className="column-scroll"
+                            >
+                              { sortItems(group, items).map((item, i) => {
+                                // return jsx
+                                return (
+                                  <Card
+                                    key={ `${(group && group.id) || group}-item-${item.get('_id')}` }
+                                    item={ item }
+                                    page={ props.page }
+                                    group={ group }
+                                    dashup={ props.dashup }
+                                    onClick={ props.setItem }
+                                    template={ props.page.get('data.display') }
+                                    getField={ props.getField }
+                                    />
+                                );
+                              }) }
+                            </ReactSortable>
+                          ) }
+                          { !!colLoading.includes(group?.value || 'backlog') && (
+                            <div className="w-100 text-center">
+                              <i className="fa fa-spinner fa-spin" />
+                            </div>
+                          ) }
+                        </PerfectScrollbar>
                       </div>
                     </div>
                   </div>
-                )
-              }) }
-
-            </PerfectScrollbar>
-          ) : (
-            <div className="d-flex flex-1 align-items-center">
-              <div className="w-100 text-center">
-                <i className="h1 fa fa-spinner fa-spin" />
-              </div>
-            </div>
-          ) }
+                </div>
+              )
+            }) }
+          </PerfectScrollbar>
         </Page.Body>
+      ) : (
+        <div className="d-flex flex-1 align-items-center">
+          <div className="w-100 text-center">
+            <i className="h1 fa fa-spinner fa-spin" />
+          </div>
+        </div>
       ) }
     </Page>
   );
