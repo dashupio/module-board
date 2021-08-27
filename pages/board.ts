@@ -20,7 +20,7 @@ export default class BoardPage extends Struct {
    */
   get icon() {
     // return page type label
-    return 'fa fa-columns';
+    return 'fad fa-columns text-info';
   }
 
   /**
@@ -28,7 +28,7 @@ export default class BoardPage extends Struct {
    */
   get title() {
     // return page type label
-    return 'Board Page';
+    return 'Board';
   }
 
   /**
@@ -63,6 +63,6 @@ export default class BoardPage extends Struct {
    */
   get description() {
     // return description string
-    return 'Board view page';
+    return 'Board view with moveable columns and cards';
   }
 }

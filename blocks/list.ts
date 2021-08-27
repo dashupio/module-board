@@ -20,7 +20,7 @@ export default class ListBlock extends Struct {
    */
   get icon() {
     // return page type label
-    return 'fa fa-checkboxes';
+    return 'fad fa-th-list';
   }
 
   /**
@@ -63,6 +63,6 @@ export default class ListBlock extends Struct {
    */
   get description() {
     // return description string
-    return 'Create a list of items';
+    return 'List of items';
   }
 }
