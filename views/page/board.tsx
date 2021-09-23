@@ -1,10 +1,10 @@
 
 // import dependencies
 import slug from 'slug';
-import { Dropdown } from 'react-bootstrap';
-import { Page, Card } from '@dashup/ui';
+import SimpleBar from 'simplebar-react';
 import { ReactSortable } from 'react-sortablejs';
 import PerfectScrollbar from 'react-perfect-scrollbar';
+import { Page, Card, Dropdown } from '@dashup/ui';
 import React, { useState, useEffect } from 'react';
 
 // create board page
