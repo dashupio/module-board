@@ -1,16 +1,24 @@
 
 // import dependencies
 import slug from 'slug';
-import SimpleBar from 'simplebar-react';
 import { ReactSortable } from 'react-sortablejs';
 import PerfectScrollbar from 'react-perfect-scrollbar';
-import { Page, Card, Dropdown } from '@dashup/ui';
 import React, { useState, useEffect } from 'react';
+import { Box, Badge, Stack, Typography, Page, Item, Button, Icon, CircularProgress } from '@dashup/ui';
+
+// timeout
+let timeout;
+
+// debounce
+const debounce = (fn, to = 200) => {
+  // clear
+  clearTimeout(timeout);
+  timeout = setTimeout(fn, to);
+};
 
 // create board page
 const PageBoard = (props = {}) => {
   // groups
-  const [form, setForm] = useState(null);
   const [share, setShare] = useState(false);
   const [groups, setGroups] = useState([]);
   const [config, setConfig] = useState(false);
@@ -121,7 +129,7 @@ const PageBoard = (props = {}) => {
   // updated
   const onUpdated = () => {
     // set updated
-    setUpdated(new Date());
+    debounce(() => setUpdated(new Date()));
   };
 
   // updated
@@ -257,7 +265,14 @@ const PageBoard = (props = {}) => {
 
       // return value
       return actualValue.includes(group.value);
-    }).sort((a, b) => {
+    }).reduce((accum, item) => {
+      // check accum
+      if (accum.find((i) => i.get('_id') === item.get('_id'))) return accum;
+      accum.push(item);
+
+      // return accum
+      return accum;
+    }, []).sort((a, b) => {
       // sort order
       let aC = a.get(sortField ? (sortField.name || sortField.uuid) : `_meta.${props.page.get('_id')}.order`) || 0;
       let bC = b.get(sortField ? (sortField.name || sortField.uuid) : `_meta.${props.page.get('_id')}.order`) || 0;
@@ -338,7 +353,7 @@ const PageBoard = (props = {}) => {
     column.listens.push(listens[0]);
 
     // add listener
-    listens[0].on('update', column.onUpdate);
+    if (column.onUpdate) listens[0].on('update', column.onUpdate);
 
     // set groups
     setGroups([...groups]);
@@ -374,11 +389,11 @@ const PageBoard = (props = {}) => {
     // find children
     const children = [...(to.childNodes)].map((node) => {
       // check id
-      return node.getAttribute && node.getAttribute('data-id');
-    }).filter((idX) => idX !== item.getAttribute('data-id'));
+      return node.getAttribute && node.getAttribute('id');
+    }).filter((idX) => idX !== item.getAttribute('id'));
 
     // splice in
-    children.splice(newIndex, 0, item.getAttribute('data-id'));
+    children.splice(newIndex, 0, item.getAttribute('id'));
               
     // updates
     const updates = [];
@@ -533,109 +548,104 @@ const PageBoard = (props = {}) => {
     <Page { ...props } require={ required } bodyClass="flex-column">
 
       <Page.Share show={ share } onHide={ (e) => setShare(false) } />
-      { !!props.item && <Page.Item show item={ props.item } form={ form } setItem={ props.setItem } onHide={ (e) => props.setItem(null) } /> }
+      { !!props.item && <Page.Item show item={ props.item } setItem={ props.setItem } onHide={ (e) => props.setItem(null) } /> }
       <Page.Config show={ config } onHide={ (e) => setConfig(false) } />
 
       <Page.Menu onConfig={ () => setConfig(true) } presence={ props.presence } onShare={ () => setShare(true) }>
         <>
           { props.dashup.can(props.page, 'submit') && !!props.getForms().length && (
-            props.getForms().length > 1 ? (
-              <Dropdown>
-                <Dropdown.Toggle variant="primary" id="dropdown-create" className="me-2">
-                  <i className="fat fa-plus me-2" />
-                  Create
-                </Dropdown.Toggle>
-  
-                <Dropdown.Menu>
-                  { props.getForms().map((form) => {
-  
-                    // return jsx
-                    return (
-                      <Dropdown.Item key={ `create-${form.get('_id')}` } onClick={ (e) => !setForm(form.get('_id')) && props.setItem(new props.dashup.Model({}, props.dashup)) }>
-                        <i className={ `me-2 fa-${form.get('icon') || 'pencil fas'}` } />
-                        { form.get('name') }
-                      </Dropdown.Item>
-                    );
-                  }) }
-                </Dropdown.Menu>
-              </Dropdown>
-            ) : (
-              <button className="btn btn-primary me-2" onClick={ (e) => !setForm(props.getForms()[0].get('_id')) && props.setItem(new props.dashup.Model({}, props.dashup)) }>
-                <i className={ `me-2 fa-${props.getForms()[0].get('icon') || 'pencil fas'}` } />
-                { props.getForms()[0].get('name') }
-              </button>
-            )
+            <Button color="primary" variant="contained" onClick={ (e) => props.setItem(new props.dashup.Model({}, props.dashup)) } startIcon={ (
+              <Icon type="fas" icon={ props.getForms()[0].get('icon') } />
+            ) }>
+              { props.getForms()[0].get('name') }
+            </Button>
           ) }
         </>
       </Page.Menu>
       <Page.Filter onSearch={ setSearch } onSort={ setSort } onTag={ setTag } onFilter={ setFilter } isString />
       { !!groups?.length ? (
         <Page.Body>
-          <PerfectScrollbar className="view-columns flex-1">
-            { groups.map(({ group, items, total }, i) => {
-              // return jsx
-              return (
-                <div key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' }>
-                  <div className="column-header px-1">
-                    { group.label || props.page.get('data.backlog.name') || 'Backlog'}
-                    <small className="ms-auto">
-                      { (total || 0).toLocaleString() }
-                    </small>
-                  </div>
-                  <div className="column-body">
-                    <div className="column-body-inner">
-                      <div className="h-100 mx--1">
-                        <PerfectScrollbar className="task-container h-100 w-100 px-1" onYReachEnd={ () => onScroll(group) }>
-                          { loading ? (
-                            <div className="w-100 text-center">
-                              <i className="fa fa-spinner fa-spin" />
-                            </div>
-                          ) : (
-                            <ReactSortable
-                              id={ `col-${group?.value || 'backlog'}` }
-                              list={ sortItems(group, items) }
-                              onEnd={ (e) => onEnd(e, { group }) }
-                              group={ props.page.get('_id') }
-                              setList={ () => {} }
-                              className="column-scroll"
-                            >
-                              { sortItems(group, items).map((item, i) => {
-                                // return jsx
-                                return (
-                                  <Card
-                                    key={ `${(group && group.id) || group}-item-${item.get('_id')}` }
-                                    item={ item }
-                                    page={ props.page }
-                                    group={ group }
-                                    dashup={ props.dashup }
-                                    onClick={ props.setItem }
-                                    template={ props.page.get('data.display') }
-                                    getField={ props.getField }
-                                    />
-                                );
-                              }) }
-                            </ReactSortable>
-                          ) }
-                          { !!colLoading.includes(group?.value || 'backlog') && (
-                            <div className="w-100 text-center">
-                              <i className="fa fa-spinner fa-spin" />
-                            </div>
-                          ) }
-                        </PerfectScrollbar>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            }) }
-          </PerfectScrollbar>
+          <Box flex={ 1 } position="relative">
+            <Box position="absolute" top={ 0 } left={ 0 } right={ 0 } bottom={ 0 }>
+              <PerfectScrollbar style={ {
+                width  : '100%',
+                height : '100%',
+              } }>
+                <Stack direction="row" spacing={ 2 } sx={ {
+                  height : '100%',
+                } }>
+                  { groups.map(({ group, items, total }, i) => {
+                    // return jsx
+                    return (
+                      <Box key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' } width={ 320 } height="100%" display="flex" flexDirection="column">
+                        <Badge badgeContent={ total || 0 } color="primary" sx={ {
+                          '& .MuiBadge-badge': {
+                            top     : 13,
+                            right   : '10px',
+                            padding : '0 4px',
+                          },
+                        } }>
+                          <Box mb={ 3 }>
+                            <Typography variant="h5">
+                              { group.label || props.page.get('data.backlog.name') || 'Backlog' }
+                            </Typography>
+                          </Box>
+                        </Badge>
+                        <Box flex={ 1 } position="relative">
+                          <Box position="absolute" top={ 0 } left={ 0 } right={ 0 } bottom={ 0 }>
+                            { loading ? (
+                              <Box flex={ 1 } alignItems="center" justifyContent="center">
+                                <CircularProgress />
+                              </Box>
+                            ) : (
+                              <PerfectScrollbar style={ {
+                                height   : '100%',
+                                position : 'relative',
+                              } } onYReachEnd={ () => onScroll(group) }>
+                                <ReactSortable
+                                  id={ `col-${group?.value || 'backlog'}` }
+                                  list={ sortItems(group, items) }
+                                  onEnd={ (e) => onEnd(e, { group }) }
+                                  group={ props.page.get('_id') }
+                                  setList={ () => {} }
+                                  className="column-scroll"
+                                >
+                                  { sortItems(group, items).map((item, i) => {
+                                    // return jsx
+                                    return (
+                                      <Box mb={ 2 } id={ item.get('_id') } key={ `${group?.id || group?.key || group}-item-${item.get('_id')}` }>
+                                        <Item
+                                          item={ item }
+                                          page={ props.page }
+                                          group={ group }
+                                          dashup={ props.dashup }
+                                          onClick={ props.setItem }
+                                          template={ props.page.get('data.display') }
+                                          getField={ props.getField }
+                                        />
+                                      </Box>
+                                    );
+                                  }) }
+                                </ReactSortable>
+                                { !!colLoading.includes(group?.value || 'backlog') && (
+                                  <CircularProgress />
+                                ) }
+                              </PerfectScrollbar>
+                            ) }
+                          </Box>
+                        </Box>
+                      </Box>
+                    )
+                  }) }
+                </Stack>
+              </PerfectScrollbar>
+            </Box>
+          </Box>
         </Page.Body>
       ) : (
-        <div className="d-flex flex-1 align-items-center">
-          <div className="w-100 text-center">
-            <i className="h1 fa fa-spinner fa-spin" />
-          </div>
-        </div>
+        <Box flex={ 1 } alignItems="center" justifyContent="center">
+          <CircularProgress />
+        </Box>
       ) }
     </Page>
   );

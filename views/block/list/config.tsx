@@ -1,7 +1,7 @@
 
 // import react
 import React from 'react';
-import { Query, View, Select } from '@dashup/ui';
+import { Query, View, TextField, MenuItem, Box, Divider } from '@dashup/ui';
 
 // block list
 const BlockListConfig = (props = {}) => {
@@ -46,94 +46,75 @@ const BlockListConfig = (props = {}) => {
     });
   };
 
-  // on forms
-  const onModel = (value) => {
-    // set data
-    props.setBlock(props.block, 'model', value?.value);
-  };
-
-  // on forms
-  const onForm = (value) => {
-    // set data
-    props.setBlock(props.block, 'form', value?.value);
-  };
-
-  // on background
-  const onBackground = (e) => {
-    // on background
-    props.setBlock(props.block, 'background', e.target.checked);
-  };
-
   // return jsx
   return (
     <>
-      <div className="mb-3">
-        <label className="form-label">
-          Choose Model
-        </label>
-        <Select options={ getModels() } defaultValue={ getModels().filter((f) => f.selected) } onChange={ onModel } />
-        <small>
-          The model this page should display.
-        </small>
-      </div>
+      <TextField
+        label="List Model"
+        value={ props.block.model || props.model }
+        select
+        onChange={ (e) => props.setBlock(props.block, 'model', e.target.value) }
+        fullWidth
+        helperText="View List with this model's items."
+      >
+        { getModels().map((option) => (
+          <MenuItem key={ option.value } value={ option.value }>
+            { option.label }
+          </MenuItem>
+        ))}
+      </TextField>
 
       { !!(props.model || props.block.model) && (
-        <div className="mb-3">
-          <label className="form-label">
-            Choose Form
-          </label>
-          <Select options={ getForms() } defaultValue={ getForms().filter((f) => f.selected) } onChange={ onForm } />
-          <small>
-            The forms that this grid will filter by.
-          </small>
-        </div>
+        <TextField
+          label="List Form"
+          value={ props.block.form || props.form }
+          select
+          onChange={ (e) => props.setBlock(props.block, 'form', e.target.value) }
+          fullWidth
+          helperText="View Board with this model's items."
+        >
+          { getForms().map((option) => (
+            <MenuItem key={ option.value } value={ option.value }>
+              { option.label }
+            </MenuItem>
+          ))}
+        </TextField>
       ) }
-
-      <hr />
-        
-      <div className="mb-3">
-        <div className="form-check form-switch">
-          <input className="form-check-input" id="is-required" type="checkbox" onChange={ onBackground } checked={ props.block.background } />
-          <label className="form-check-label" htmlFor="is-required">
-            Enable Background
-          </label>
-        </div>
-      </div>
+      
+      <Box my={ 2 }>
+        <Divider />
+      </Box>
 
       { !!getModels().filter((f) => f.selected).length && (
         <>
-          <hr />
+          <View
+            type="field"
+            view="input"
+            mode="handlebars"
+            struct="code"
+            value={ props.block.display }
+            field={ {
+              label : 'Item Display',
+            } }
+            dashup={ props.dashup }
+            onChange={ (f, val) => props.setBlock(props.block, 'display', val) }
+          />
 
-          <div className="mb-3">
-            <label className="form-label">
-              Item Display
-            </label>
-            <View
-              type="field"
-              view="code"
-              mode="handlebars"
-              struct="code"
-              value={ props.block.display }
-              dashup={ props.dashup }
-              onChange={ (val) => props.setBlock(props.block, 'display', val) }
-              />
-          </div>
-            
-          <div className="mb-3">
-            <label className="form-label">
-              Filter By
-            </label>
-            <Query
-              isString
+          <Box my={ 2 }>
+            <Divider />
+          </Box>
 
-              page={ props.page }
-              query={ props.block.filter }
-              dashup={ props.dashup }
-              fields={ props.getFields() }
-              onChange={ (val) => props.setBlock(props.block, 'filter', val) }
-              getFieldStruct={ props.getFieldStruct }
-              />
-          </div>
+          <Query
+            isString
+
+            page={ props.page }
+            label="Filter By"
+            query={ props.block.filter }
+            dashup={ props.dashup }
+            fields={ props.getFields() }
+            onChange={ (val) => props.setBlock(props.block, 'filter', val) }
+            getFieldStruct={ props.getFieldStruct }
+          />
         </>
       ) }
     </>

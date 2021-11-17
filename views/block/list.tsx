@@ -1,8 +1,8 @@
 
 // import react
-import { Card } from '@dashup/ui';
-import SimpleBar from 'simplebar-react';
+import FlatList from 'flatlist-react';
 import React, { useState, useEffect } from 'react';
+import { Box, Card, Item, CardHeader, CardContent, CircularProgress } from '@dashup/ui';
 
 // block list
 const BlockList = (props = {}) => {
@@ -64,7 +64,8 @@ const BlockList = (props = {}) => {
       listening = data;
 
       // set data
-      setData(data);
+      setData(skip ? [...data, data] : data);
+      setTotal(total);
       setLoading(false);
     });
 
@@ -86,57 +87,60 @@ const BlockList = (props = {}) => {
     JSON.stringify(props.page && props.page.get('data.filter')),
   ]);
 
-  // return jsx
   return (
-    <div className={ `flex-1 d-flex flex-column h-100 w-100${props.block.background ? ' card' : ''}` }>
-      { !!props.block.label && (
-        <div className={ props.block.background ? 'card-header' : 'mb-2' }>
-          <b>{ props.block.label }</b>
-        </div>
+    <Card sx={ {
+      width         : '100%',
+      height        : '100%',
+      display       : 'flex',
+      flexDirection : 'column',
+    } }>
+      { !!props.block.name && (
+        <CardHeader
+          title={ props.block.name }
+        />
       ) }
-      { !!skip && (
-        <div className={ props.block.background ? 'card-header' : 'mb-2' }>
-          <button className="btn btn-primary w-100" onClick={ (e) => onPrev(e) }>
-            { loading ? 'Loading...' : 'Prev' }
-          </button>
-        </div>
-      ) }
-      { !!loading && (
-        <div className={ `text-center${props.block.background ? ' card-body' : ''}` }>
-          <i className="fa fa-spinner fa-spin" />
-        </div>
-      ) }
-      { !loading && (
-        <div className={ `flex-1${props.block.background ? ' card-body' : ''}` }>
-          <div className="h-100 fit-content">
-            <SimpleBar>
-              { items.map((item, i) => {
+      <CardContent sx={ {
+        flex    : 1,
+        display : 'flex',
+      } }>
+        <Box flex={ 1 } position="relative">
+          <Box position="absolute" top={ 0 } left={ 0 } right={ 0 } bottom={ 0 }>
+            <FlatList
+              list={ items }
+              renderItem={ (item) => {
                 // return jsx
                 return (
-                  <Card
-                    key={ `block-${props.block.uuid}-${item.get('_id')}` }
+                  <Item
+                    key={ `item-${item.get('_id')}` }
                     item={ item }
                     page={ props.page }
+                    color={ props.item?.get('_id') === item.get('_id') ? 'primary.light' : undefined }
                     dashup={ props.dashup }
                     onItem={ props.onItem }
                     onClick={ props.onClick }
+                    variant="outlined"
                     template={ props.block.display }
                     getField={ props.getField }
-                    />
+                  />
                 );
-              }) }
-            </SimpleBar>
-          </div>
-        </div>
-      ) }
-      { (total - skip - limit) > 0 && (
-        <div className={ props.block.background ? 'card-footer' : 'mt-2' }>
-          <button className="btn btn-primary w-100" onClick={ (e) => onNext(e) }>
-            { loading ? 'Loading...' : 'Next' }
-          </button>
-        </div>
-      ) }
-    </div>
+              } }
+              renderWhenEmpty={ () => (
+                <Box justifyContent="center" display="flex" my={ 2 }>
+                  <CircularProgress />
+                </Box>
+              ) }
+              hasMoreItems={ items.length < total }
+              loadMoreItems={ () => setSkip(skip + limit) }
+              paginationLoadingIndicator={ (
+                <Box justifyContent="center" display="flex" my={ 2 }>
+                  <CircularProgress />
+                </Box>
+              ) }
+            />
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 
