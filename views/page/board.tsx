@@ -4,7 +4,7 @@ import slug from 'slug';
 import { ReactSortable } from 'react-sortablejs';
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import React, { useState, useEffect } from 'react';
-import { Box, Badge, Stack, Typography, Page, Item, Button, Icon, CircularProgress } from '@dashup/ui';
+import { Box, Badge, Stack, Typography, Page, Item, Button, Icon, Tooltip, CircularProgress } from '@dashup/ui';
 
 // timeout
 let timeout;
@@ -545,24 +545,31 @@ const PageBoard = (props = {}) => {
 
   // return jsx
   return (
-    <Page { ...props } require={ required } bodyClass="flex-column">
+    <Page { ...props } require={ required } onConfig={ () => setConfig(true) } onShare={ () => setShare(true) }>
 
       <Page.Share show={ share } onHide={ (e) => setShare(false) } />
       { !!props.item && <Page.Item show item={ props.item } setItem={ props.setItem } onHide={ (e) => props.setItem(null) } /> }
       <Page.Config show={ config } onHide={ (e) => setConfig(false) } />
-
-      <Page.Menu onConfig={ () => setConfig(true) } presence={ props.presence } onShare={ () => setShare(true) }>
-        <>
-          { props.dashup.can(props.page, 'submit') && !!props.getForms().length && (
-            <Button color="primary" variant="contained" onClick={ (e) => props.setItem(new props.dashup.Model({}, props.dashup)) } startIcon={ (
-              <Icon type="fas" icon={ props.getForms()[0].get('icon') } />
-            ) }>
+      
+      <Page.Filter onSearch={ setSearch } onSort={ setSort } onTag={ setTag } onFilter={ setFilter } isString>
+        { props.dashup.can(props.page, 'submit') && !!props.getForms().length && (
+          <Tooltip title="Add Item">
+            <Button
+              sx={ {
+                ml : 2,
+              } }
+              variant="contained"
+              onClick={ (e) => props.setItem(new props.dashup.Model({}, props.dashup)) }
+              startIcon={ (
+                props.getForms()[0] && <Icon icon={ props.getForms()[0].get('icon') } />
+              ) }
+            >
               { props.getForms()[0].get('name') }
             </Button>
-          ) }
-        </>
-      </Page.Menu>
-      <Page.Filter onSearch={ setSearch } onSort={ setSort } onTag={ setTag } onFilter={ setFilter } isString />
+          </Tooltip>
+        ) }
+      </Page.Filter>
+
       { !!groups?.length ? (
         <Page.Body>
           <Box flex={ 1 } position="relative">
@@ -577,7 +584,7 @@ const PageBoard = (props = {}) => {
                   { groups.map(({ group, items, total }, i) => {
                     // return jsx
                     return (
-                      <Box key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' } width={ 320 } height="100%" display="flex" flexDirection="column">
+                      <Box key={ `group-${group?.id || 'backlog'}` } data-column={ group?.id || 'backlog' } minWidth={ 320 } maxWidth={ 320 } height="100%" display="flex" flexDirection="column">
                         <Badge badgeContent={ total || 0 } color="primary" sx={ {
                           '& .MuiBadge-badge': {
                             top     : 13,
@@ -592,7 +599,11 @@ const PageBoard = (props = {}) => {
                           </Box>
                         </Badge>
                         <Box flex={ 1 } position="relative">
-                          <Box position="absolute" top={ 0 } left={ 0 } right={ 0 } bottom={ 0 }>
+                          <Box position="absolute" top={ 0 } left={ 0 } right={ 0 } bottom={ 0 } sx={ {
+                            '& .column-scroll' : {
+                              minHeight : '100%',
+                            }
+                          } }>
                             { loading ? (
                               <Box flex={ 1 } alignItems="center" justifyContent="center">
                                 <CircularProgress />
@@ -643,7 +654,7 @@ const PageBoard = (props = {}) => {
           </Box>
         </Page.Body>
       ) : (
-        <Box flex={ 1 } alignItems="center" justifyContent="center">
+        <Box flex={ 1 } alignItems="center" justifyContent="center" display="flex">
           <CircularProgress />
         </Box>
       ) }

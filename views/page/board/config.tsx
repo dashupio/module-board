@@ -118,15 +118,15 @@ const PageBoardConfig = (props = {}) => {
           <MenuItem key={ option.value } value={ option.value }>
             { option.label }
           </MenuItem>
-        ))}
+        )) }
       </TextField>
 
       { !!props.page.get('data.model') && (
         <TextField
           label="Board Form(s)"
-          value={ Array.isArray(props.page.get('data.form')) ? props.page.get('data.form') : [props.page.get('data.form')].filter((f) => f) }
+          value={ Array.isArray(props.page.get('data.forms')) ? props.page.get('data.forms') : [props.page.get('data.forms')].filter((f) => f) }
           select
-          onChange={ (e) => props.setData('form', e.target.value) }
+          onChange={ (e) => props.setData('forms', e.target.value) }
           fullWidth
           helperText="The forms that this board will filter by."
           SelectProps={ {
@@ -137,7 +137,7 @@ const PageBoardConfig = (props = {}) => {
             <MenuItem key={ option.value } value={ option.value }>
               { option.label }
             </MenuItem>
-          ))}
+          )) }
         </TextField>
       ) }
 
@@ -175,7 +175,7 @@ const PageBoardConfig = (props = {}) => {
               <MenuItem key={ option.value } value={ option.value }>
                 { option.label }
               </MenuItem>
-            ))}
+            )) }
           </TextField>
 
           <TextField
@@ -193,7 +193,7 @@ const PageBoardConfig = (props = {}) => {
               <MenuItem key={ option.value } value={ option.value }>
                 { option.label }
               </MenuItem>
-            ))}
+            )) }
           </TextField>
 
           <TextField
@@ -211,7 +211,7 @@ const PageBoardConfig = (props = {}) => {
               <MenuItem key={ option.value } value={ option.value }>
                 { option.label }
               </MenuItem>
-            ))}
+            )) }
           </TextField>
 
           <View
