@@ -364,9 +364,6 @@ const PageBoard = (props = {}) => {
 
   // on end
   const onEnd = async (e, { group }) => {
-    // saving
-    setSaving(true);
-
     // get items
     const items = groups.reduce((accum, { items }) => {
       // push
@@ -449,66 +446,78 @@ const PageBoard = (props = {}) => {
     });
 
     // saving
-    setSaving(false);
+    setSaving(true);
 
     // check updates
     await Promise.all(updates.map((update) => update.save()));
+
+    // saved
+    setSaving(false);
   };
 
   // use effect
-  useEffect(async () => {
-    // check require
-    if (required.find((r) => !props.page.get(r.key))) return;
+  useEffect(() => {
+    // datas
+    let datas = [];
 
-    // set loading
-    setLoading(true);
+    // async
+    const fetchData = async () => {
+      // check require
+      if (required.find((r) => !props.page.get(r.key))) return;
 
-    // load groups
-    const groups = await loadGroups();
+      // set loading
+      setLoading(true);
 
-    // check groups
-    if (!groups || !groups.length) return;
+      // load groups
+      const groups = await loadGroups();
 
-    // load groups
-    if (!props.page.get('data.backlog.disabled')) {
-      // unshift
-      groups.unshift({
-        key   : groups[0].key,
-        type  : 'backlog',
-        value : null,
+      // check groups
+      if (!groups || !groups.length) return;
+
+      // load groups
+      if (!props.page.get('data.backlog.disabled')) {
+        // unshift
+        groups.unshift({
+          key   : groups[0].key,
+          type  : 'backlog',
+          value : null,
+        });
+      }
+
+      // create group listens
+      datas = await Promise.all(groups.map((g) => loadData(g)));
+      
+      // set groups
+      setGroups(datas || []);
+      setLoading(false);
+
+      // add listener
+      datas.forEach((data) => {
+        // on update
+        data.onUpdate = () => {
+          // on group
+          onGroup(data).then(onUpdated);
+          onGroupCount(data).then(onUpdated);
+        };
+
+        // listens
+        data.listens.forEach((listen) => {
+          // add individual listener
+          listen.on('update', data.onUpdate);
+        });
       });
-    }
 
-    // create group listens
-    const datas = await Promise.all(groups.map((g) => loadData(g)));
-    
-    // set groups
-    setGroups(datas || []);
-    setLoading(false);
+      // add listener
+      props.page.on('data.sort', onUpdated);
+      props.page.on('data.group', onUpdated);
+      props.page.on('data.filter', onUpdated);
+      props.page.on('user.search', onUpdated);
+      props.page.on('user.filter.me', onUpdated);
+      props.page.on('user.filter.tags', onUpdated);
+    };
 
-    // add listener
-    datas.forEach((data) => {
-      // on update
-      data.onUpdate = () => {
-        // on group
-        onGroup(data).then(onUpdated);
-        onGroupCount(data).then(onUpdated);
-      };
-
-      // listens
-      data.listens.forEach((listen) => {
-        // add individual listener
-        listen.on('update', data.onUpdate);
-      });
-    });
-
-    // add listener
-    props.page.on('data.sort', onUpdated);
-    props.page.on('data.group', onUpdated);
-    props.page.on('data.filter', onUpdated);
-    props.page.on('user.search', onUpdated);
-    props.page.on('user.filter.me', onUpdated);
-    props.page.on('user.filter.tags', onUpdated);
+    // fetch data
+    fetchData();
 
     // on update
     return () => {
@@ -618,8 +627,10 @@ const PageBoard = (props = {}) => {
                                   list={ sortItems(group, items) }
                                   onEnd={ (e) => onEnd(e, { group }) }
                                   group={ props.page.get('_id') }
+                                  delay={ 2 }
                                   setList={ () => {} }
                                   className="column-scroll"
+                                  delayOnTouchStart
                                 >
                                   { sortItems(group, items).map((item, i) => {
                                     // return jsx

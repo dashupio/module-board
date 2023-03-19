@@ -1,7 +1,8 @@
 
 // import react
-import React from 'react';
-import { View, Query, TextField, Box, Divider, MenuItem, FormControl, FormControlLabel, Switch } from '@dashup/ui';
+import React, { useState, useEffect } from 'react';
+import { ReactSortable } from 'react-sortablejs';
+import { View, Query, TextField, Box, Button, Divider, MenuItem, FormControl, FormControlLabel, Switch } from '@dashup/ui';
 
 // timeout
 let timeout;
@@ -15,6 +16,8 @@ const debounce = (fn, to = 200) => {
 
 // create page model config
 const PageBoardConfig = (props = {}) => {
+  // sorted forms
+  const [sortedForms, setSortedForms] = useState(props.page.get('data.sorted') || props.page.get('data.forms') || []);
 
   // get dashboards
   const getModels = () => {
@@ -41,7 +44,7 @@ const PageBoardConfig = (props = {}) => {
     // get forms
     const forms = Array.from(props.dashup.get('pages').values()).filter((page) => {
       // return model pages
-      return page.get('type') === 'form' && page.get('data.model') === props.page.get('data.model') && !page.get('archived');
+      return page.get('type') === 'form' && (page.get('data.model') || []).includes(props.page.get('data.model')) && !page.get('archived');
     });
 
     // return mapped
@@ -73,35 +76,44 @@ const PageBoardConfig = (props = {}) => {
     }).filter((f) => f);
   };
 
-  // on forms
-  const onModel = (value) => {
-    // set data
-    props.setData('model', value?.value);
+  // set list
+  const setSorted = (list = [], withSave = false) => {
+    // check list
+    list = list.map((l) => {
+      // check if string
+      if (typeof l === 'string') return l;
+      if (typeof l === 'object') return Object.values(l).filter((v) => typeof v === 'string').join('');
+    }).filter((l) => l).filter((l) => {
+      try {
+        return props.dashup.page(l);
+      } catch (e) {}
+    });
+
+    // filter out removed options
+    list = list.filter((s) => (props.page.get('data.forms') || []).includes(s));
+
+    // add missing options
+    (props.page.get('data.forms') || []).forEach((option) => {
+      // check includes
+      if (list.includes(option)) return;
+
+      // push
+      list.push(option);
+    });
+
+    // set sorted
+    if (withSave) {
+      props.setData('sorted', Array.from(new Set(list)));
+    } else {
+      setSortedForms(Array.from(new Set(list)));
+    }
   };
 
-  // on forms
-  const onField = (tld, value) => {
+  // use effect
+  useEffect(() => {
     // set data
-    props.setData(tld, value || null);
-  };
-
-  // on forms
-  const onForms = (value) => {
-    // set data
-    props.setData('forms', value.map((v) => v.value));
-  };
-
-  // on backlog
-  const onBacklog = (e) => {
-    // set data
-    props.setData('backlog.disabled', !e.target.checked);
-  };
-
-  // on backlog name
-  const onBacklogName = (e) => {
-    // set data
-    props.setData('backlog.name', e.target.value);
-  };
+    setSorted(sortedForms, true);
+  }, [props.page.get('data.forms')]);
 
   // return jsx
   return (
@@ -124,7 +136,7 @@ const PageBoardConfig = (props = {}) => {
       { !!props.page.get('data.model') && (
         <TextField
           label="Board Form(s)"
-          value={ Array.isArray(props.page.get('data.forms')) ? props.page.get('data.forms') : [props.page.get('data.forms')].filter((f) => f) }
+          value={ getForms().filter((v) => v.selected).map((f) => f.value) }
           select
           onChange={ (e) => props.setData('forms', e.target.value) }
           fullWidth
@@ -139,6 +151,34 @@ const PageBoardConfig = (props = {}) => {
             </MenuItem>
           )) }
         </TextField>
+      ) }
+
+      { !!props.page.get('data.model') && !!props.page.get('data.forms.0') && (
+        <Box
+          sx={ {
+            mt            : 2,
+            display       : 'flex',
+            flexWrap      : 'wrap',
+            flexDirection : 'row',
+          } }
+          list={ sortedForms }
+          onEnd={ () => props.setData('sorted', sortedForms) }
+          setList={ (list) => setSorted(list) }
+          component={ ReactSortable }
+        >
+          { sortedForms.map((form) => {
+            // return jsx
+            return (
+              <Box key={ form } mr={ 2 } mb={ 1 }>
+                <Button variant="contained" color="primary" sx={ {
+                  whiteSpace : 'nowrap',
+                } }>
+                  { props.dashup.page(form)?.get('name') }
+                </Button>
+              </Box>
+            );
+          }) }
+        </Box>
       ) }
 
       { !!props.page.get('data.model') && props.getFields && !!props.getFields().length && (
